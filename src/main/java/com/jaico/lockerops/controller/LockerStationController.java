@@ -1,21 +1,15 @@
 package com.jaico.lockerops.controller;
 
-import java.util.List;
-
+import com.jaico.lockerops.dto.CreateLockerStationRequest;
+import com.jaico.lockerops.dto.LockerStationResponse;
+import com.jaico.lockerops.dto.UpdateLockerStationRequest;
+import com.jaico.lockerops.service.LockerStationService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-import com.jaico.lockerops.model.LockerStation;
-import com.jaico.lockerops.service.LockerStationService;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/locker-stations")
@@ -28,36 +22,38 @@ public class LockerStationController {
     }
 
     @GetMapping
-    public List<LockerStation> getAllLockerStations() {
-        return lockerStationService.getAllLockerStations();
+    public ResponseEntity<List<LockerStationResponse>> getAllLockerStations() {
+        List<LockerStationResponse> lockerStations = lockerStationService.getAllLockerStations();
+
+        return ResponseEntity.ok(lockerStations);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<LockerStation> getLockerStationById(@PathVariable Long id) {
-        LockerStation lockerStation = lockerStationService.getLockerStationById(id);
+    public ResponseEntity<LockerStationResponse> getLockerStationById(@PathVariable Long id) {
+        LockerStationResponse lockerStation = lockerStationService.getLockerStationById(id);
 
         return ResponseEntity.ok(lockerStation);
     }
 
     @PostMapping
-    public ResponseEntity<LockerStation> createLockerStation(
-            @Valid @RequestBody LockerStation lockerStation) {
+    public ResponseEntity<LockerStationResponse> createLockerStation(
+            @Valid @RequestBody CreateLockerStationRequest request) {
 
-        LockerStation savedLockerStation = lockerStationService.createLockerStation(lockerStation);
+        LockerStationResponse createdLockerStation = lockerStationService.createLockerStation(request);
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(savedLockerStation);
+                .body(createdLockerStation);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<LockerStation> updateLockerStation(
+    public ResponseEntity<LockerStationResponse> updateLockerStation(
             @PathVariable Long id,
-            @Valid @RequestBody LockerStation lockerStationDetails) {
+            @Valid @RequestBody UpdateLockerStationRequest request) {
 
-        LockerStation updatedLockerStation = lockerStationService.updateLockerStation(
+        LockerStationResponse updatedLockerStation = lockerStationService.updateLockerStation(
                 id,
-                lockerStationDetails
+                request
         );
 
         return ResponseEntity.ok(updatedLockerStation);

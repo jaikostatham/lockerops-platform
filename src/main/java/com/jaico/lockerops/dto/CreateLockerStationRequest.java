@@ -1,41 +1,33 @@
-package com.jaico.lockerops.model;
+package com.jaico.lockerops.dto;
 
-import jakarta.persistence.*;
+import com.jaico.lockerops.model.LockerStationStatus;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
-@Entity
-@Table(name = "locker_stations")
-public class LockerStation {
+public class CreateLockerStationRequest {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @Column(nullable = false, length = 100)
+    @NotBlank(message = "El nombre de la estación es obligatorio")
+    @Size(min = 3, max = 100, message = "El nombre de la estación debe tener entre 3 y 100 caracteres")
     private String name;
 
-    @Column(nullable = false, length = 50)
+    @NotBlank(message = "El modelo es obligatorio")
+    @Size(max = 50, message = "El modelo no puede superar los 50 caracteres")
     private String model;
 
-    @Column(nullable = false, length = 100)
+    @NotBlank(message = "El fabricante es obligatorio")
+    @Size(max = 100, message = "El fabricante no puede superar los 100 caracteres")
     private String manufacturer;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 30)
+    @NotNull(message = "El estado es obligatorio")
     private LockerStationStatus status;
 
-    @Column(nullable = false, length = 150)
+    @NotBlank(message = "La ubicación es obligatoria")
+    @Size(max = 150, message = "La ubicación no puede superar los 150 caracteres")
     private String location;
 
-    @Column(name = "image_url", length = 500)
+    @Size(max = 500, message = "La URL de la imagen no puede superar los 500 caracteres")
     private String imageUrl;
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
 
     public String getName() {
         return name;
