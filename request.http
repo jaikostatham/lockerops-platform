@@ -1,0 +1,122 @@
+###############################################################
+# FULL CRUD DEMO - LOCKEROPS PLATFORM
+#
+# Estado inicial:
+# - Estaciones de lockers inteligentes existentes: IDs 1, 2 y 3
+#
+# Flujo de la demo:
+# 1. Crear una nueva estacion
+# 2. Modificar la estacion creada
+# 3. Eliminar la estacion
+# 4. Verificar que la base de datos vuelve al estado inicial
+###############################################################
+
+### DEMO 01 - Get All Locker Stations (Initial State)
+
+GET http://localhost:8080/api/locker-stations
+
+###
+
+### DEMO 02 - Create Locker Station
+
+POST http://localhost:8080/api/locker-stations
+Content-Type: application/json
+
+{
+  "name": "Locker Station Test",
+  "model": "LOCKER PRO",
+  "manufacturer": "LOCKEROPS",
+  "status": "ACTIVE",
+  "location": "",
+  "imageUrl": "https://lockerops.com/images/test.jpg"
+}
+
+###
+
+### DEMO 03 - Get All Locker Stations
+
+GET http://localhost:8080/api/locker-stations
+
+###
+
+### DEMO 04 - Get Locker Station By Id
+
+GET http://localhost:8080/api/locker-stations/4
+
+###
+
+### DEMO 05 - Update Locker Station
+
+PUT http://localhost:8080/api/locker-stations/4
+Content-Type: application/json
+
+{
+  "name": "Locker Station Demo Updated",
+  "model": "LOCKER PRO",
+  "manufacturer": "LOCKEROPS",
+  "status": "ACTIVE",
+  "location": "Madrid Centro Updated",
+  "imageUrl": "https://lockerops.example.com/images/locker-station-demo.jpg"
+}
+
+###
+
+### DEMO 06 - Verify Update
+
+GET http://localhost:8080/api/locker-stations/4
+
+###
+
+### DEMO 07 - Delete Locker Station
+
+DELETE http://localhost:8080/api/locker-stations/1
+
+###
+
+### DEMO 08 - Verify Delete
+
+GET http://localhost:8080/api/locker-stations/4
+
+###
+
+### DEMO 09 - Create Locker Station (Enum Error)
+
+POST http://localhost:8080/api/locker-stations
+Content-Type: application/json
+
+{
+  "name": "Locker Station Error",
+  "model": "LOCKER MINI",
+  "manufacturer": "LOCKEROPS",
+  "status": "BROKEN",
+  "location": "Valencia Norte",
+  "imageUrl": "https://lockerops.example.com/images/locker-station-error.jpg"
+}
+
+###
+
+### DEMO 10 - Update Locker Station (Not Found)
+
+PUT http://localhost:8080/api/locker-stations/999999
+Content-Type: application/json
+
+{
+  "name": "Locker Station Not Found",
+  "model": "LOCKER PRO",
+  "manufacturer": "LOCKEROPS",
+  "status": "ACTIVE",
+  "location": "Barcelona Sants",
+  "imageUrl": "https://lockerops.example.com/images/locker-station-not-found.jpg"
+}
+
+###
+
+### DEMO 11 - Delete Locker Station (Not Found)
+
+DELETE http://localhost:8080/api/locker-stations/999999
+
+###
+
+### DEMO 12 - Get All Locker Stations (Final State)
+
+GET http://localhost:8080/api/locker-stations
