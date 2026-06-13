@@ -34,7 +34,7 @@ public class GlobalExceptionHandler {
         ApiErrorResponse response = new ApiErrorResponse(
                 HttpStatus.BAD_REQUEST.value(),
                 HttpStatus.BAD_REQUEST.getReasonPhrase(),
-                "Validation failed",
+                "La validación de la petición ha fallado",
                 request.getRequestURI(),
                 fieldErrors
         );
@@ -70,7 +70,7 @@ public class GlobalExceptionHandler {
         ApiErrorResponse response = new ApiErrorResponse(
                 HttpStatus.BAD_REQUEST.value(),
                 HttpStatus.BAD_REQUEST.getReasonPhrase(),
-                "Invalid request body",
+                "El cuerpo de la petición no es válido",
                 request.getRequestURI(),
                 Map.<String, List<String>>of(
                         "requestBody",

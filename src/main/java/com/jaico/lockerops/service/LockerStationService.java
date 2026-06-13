@@ -1,61 +1,79 @@
 package com.jaico.lockerops.service;
 
-import java.util.List;
-import java.util.Optional;
-
+import com.jaico.lockerops.dto.CreateLockerStationRequest;
+import com.jaico.lockerops.dto.LockerStationResponse;
+import com.jaico.lockerops.dto.UpdateLockerStationRequest;
 import com.jaico.lockerops.exception.ResourceNotFoundException;
-import org.springframework.stereotype.Service;
-
+import com.jaico.lockerops.mapper.LockerStationMapper;
 import com.jaico.lockerops.model.LockerStation;
 import com.jaico.lockerops.repository.LockerStationRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 public class LockerStationService {
 
     private final LockerStationRepository lockerStationRepository;
+    private final LockerStationMapper lockerStationMapper;
 
-    public LockerStationService(LockerStationRepository lockerStationRepository) {
+    public LockerStationService(
+            LockerStationRepository lockerStationRepository,
+            LockerStationMapper lockerStationMapper
+    ) {
         this.lockerStationRepository = lockerStationRepository;
+        this.lockerStationMapper = lockerStationMapper;
     }
 
-    public List<LockerStation> getAllLockerStations() {
-        return lockerStationRepository.findAll();
+    @Transactional(readOnly = true)
+    public List<LockerStationResponse> getAllLockerStations() {
+        List<LockerStation> lockerStations = lockerStationRepository.findAll();
+
+        return lockerStationMapper.toResponseList(lockerStations);
     }
 
-    public LockerStation getLockerStationById(Long id) {
+    @Transactional(readOnly = true)
+    public LockerStationResponse getLockerStationById(Long id) {
+        LockerStation lockerStation = findLockerStationOrThrow(id);
+
+        return lockerStationMapper.toResponse(lockerStation);
+    }
+
+    @Transactional
+    public LockerStationResponse createLockerStation(CreateLockerStationRequest request) {
+        LockerStation lockerStation = lockerStationMapper.toEntity(request);
+
+        LockerStation savedLockerStation = lockerStationRepository.save(lockerStation);
+
+        return lockerStationMapper.toResponse(savedLockerStation);
+    }
+
+    @Transactional
+    public LockerStationResponse updateLockerStation(
+            Long id,
+            UpdateLockerStationRequest request
+    ) {
+        LockerStation lockerStation = findLockerStationOrThrow(id);
+
+        lockerStationMapper.updateEntityFromRequest(request, lockerStation);
+
+        LockerStation updatedLockerStation = lockerStationRepository.save(lockerStation);
+
+        return lockerStationMapper.toResponse(updatedLockerStation);
+    }
+
+    @Transactional
+    public void deleteLockerStation(Long id) {
+        LockerStation lockerStation = findLockerStationOrThrow(id);
+
+        lockerStationRepository.delete(lockerStation);
+    }
+
+    private LockerStation findLockerStationOrThrow(Long id) {
         return lockerStationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Locker station not found with id: " + id
+                        "Estación de lockers no encontrada con id: " + id
                 ));
-    }
-
-    public LockerStation createLockerStation(LockerStation lockerStation) {
-        return lockerStationRepository.save(lockerStation);
-    }
-
-    public LockerStation updateLockerStation(Long id, LockerStation lockerStationDetails) {
-        LockerStation lockerStation = lockerStationRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Locker station not found with id: " + id
-                ));
-
-        lockerStation.setName(lockerStationDetails.getName());
-        lockerStation.setModel(lockerStationDetails.getModel());
-        lockerStation.setManufacturer(lockerStationDetails.getManufacturer());
-        lockerStation.setStatus(lockerStationDetails.getStatus());
-        lockerStation.setLocation(lockerStationDetails.getLocation());
-        lockerStation.setImageUrl(lockerStationDetails.getImageUrl());
-
-        return lockerStationRepository.save(lockerStation);
-    }
-
-    public void deleteLockerStation(Long id) {
-        if (!lockerStationRepository.existsById(id)) {
-            throw new ResourceNotFoundException(
-                    "Locker station not found with id: " + id
-            );
-        }
-
-        lockerStationRepository.deleteById(id);
     }
 }

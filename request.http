@@ -1,122 +1,141 @@
 ###############################################################
-# FULL CRUD DEMO - LOCKEROPS PLATFORM
+# LOCKEROPS PLATFORM - HTTP REQUESTS
 #
-# Estado inicial:
-# - Estaciones de lockers inteligentes existentes: IDs 1, 2 y 3
+# Backend:
+# http://localhost:8080
 #
-# Flujo de la demo:
-# 1. Crear una nueva estacion
-# 2. Modificar la estacion creada
-# 3. Eliminar la estacion
-# 4. Verificar que la base de datos vuelve al estado inicial
+# Endpoint:
+# /api/locker-stations
+#
+# Nota:
+# - Ejecuta primero DEMO 02.
+# - Copia el "id" devuelto por el POST.
+# - Pega ese valor en @demoLockerStationId.
 ###############################################################
 
-### DEMO 01 - Get All Locker Stations (Initial State)
+@baseUrl = http://localhost:8080
+@demoLockerStationId = 5
+@notFoundId = 999999
 
-GET http://localhost:8080/api/locker-stations
+###############################################################
+# HAPPY PATH - CRUD FLOW
+###############################################################
 
-###
+### DEMO 01 - Get All Locker Stations
+
+GET {{baseUrl}}/api/locker-stations
+
 
 ### DEMO 02 - Create Locker Station
 
-POST http://localhost:8080/api/locker-stations
+POST {{baseUrl}}/api/locker-stations
 Content-Type: application/json
 
 {
-  "name": "Locker Station Test",
+  "name": "Locker Station Madrid Centro",
   "model": "LOCKER PRO",
-  "manufacturer": "LOCKEROPS",
+  "manufacturer": "FINOCIO",
   "status": "ACTIVE",
+  "location": "Madrid Centro",
+  "imageUrl": "https://example.com/locker-madrid.jpg"
+}
+
+
+### DEMO 03 - Get Locker Station By Id
+# Cambia @demoLockerStationId por el id devuelto en DEMO 02.
+
+GET {{baseUrl}}/api/locker-stations/{{demoLockerStationId}}
+
+
+### DEMO 04 - Update Locker Station
+
+PUT {{baseUrl}}/api/locker-stations/{{demoLockerStationId}}
+Content-Type: application/json
+
+{
+  "name": "Locker Station Madrid Centro Updated",
+  "model": "LOCKER PRO V2",
+  "manufacturer": "FINOCIO",
+  "status": "MAINTENANCE",
+  "location": "Madrid Centro",
+  "imageUrl": "https://example.com/locker-madrid-updated.jpg"
+}
+
+
+### DEMO 05 - Verify Update
+
+GET {{baseUrl}}/api/locker-stations/{{demoLockerStationId}}
+
+
+### DEMO 06 - Delete Locker Station
+
+DELETE {{baseUrl}}/api/locker-stations/{{demoLockerStationId}}
+
+
+### DEMO 07 - Verify Delete
+
+GET {{baseUrl}}/api/locker-stations/{{demoLockerStationId}}
+
+
+### DEMO 08 - Get All Locker Stations Final State
+
+GET {{baseUrl}}/api/locker-stations
+
+
+###############################################################
+# ERROR CASES - VALIDATION AND EXCEPTION HANDLING
+###############################################################
+
+### ERROR 01 - Create Locker Station With Validation Errors
+
+POST {{baseUrl}}/api/locker-stations
+Content-Type: application/json
+
+{
+  "name": "",
+  "model": "",
+  "manufacturer": "",
+  "status": null,
   "location": "",
-  "imageUrl": "https://lockerops.com/images/test.jpg"
+  "imageUrl": "https://example.com/locker.jpg"
 }
 
-###
 
-### DEMO 03 - Get All Locker Stations
+### ERROR 02 - Create Locker Station With Invalid Enum
 
-GET http://localhost:8080/api/locker-stations
-
-###
-
-### DEMO 04 - Get Locker Station By Id
-
-GET http://localhost:8080/api/locker-stations/4
-
-###
-
-### DEMO 05 - Update Locker Station
-
-PUT http://localhost:8080/api/locker-stations/4
+POST {{baseUrl}}/api/locker-stations
 Content-Type: application/json
 
 {
-  "name": "Locker Station Demo Updated",
+  "name": "Locker Station Invalid Enum",
   "model": "LOCKER PRO",
-  "manufacturer": "LOCKEROPS",
-  "status": "ACTIVE",
-  "location": "Madrid Centro Updated",
-  "imageUrl": "https://lockerops.example.com/images/locker-station-demo.jpg"
-}
-
-###
-
-### DEMO 06 - Verify Update
-
-GET http://localhost:8080/api/locker-stations/4
-
-###
-
-### DEMO 07 - Delete Locker Station
-
-DELETE http://localhost:8080/api/locker-stations/1
-
-###
-
-### DEMO 08 - Verify Delete
-
-GET http://localhost:8080/api/locker-stations/4
-
-###
-
-### DEMO 09 - Create Locker Station (Enum Error)
-
-POST http://localhost:8080/api/locker-stations
-Content-Type: application/json
-
-{
-  "name": "Locker Station Error",
-  "model": "LOCKER MINI",
-  "manufacturer": "LOCKEROPS",
+  "manufacturer": "FINOCIO",
   "status": "BROKEN",
-  "location": "Valencia Norte",
-  "imageUrl": "https://lockerops.example.com/images/locker-station-error.jpg"
+  "location": "Madrid Centro",
+  "imageUrl": "https://example.com/locker-invalid-enum.jpg"
 }
 
-###
 
-### DEMO 10 - Update Locker Station (Not Found)
+### ERROR 03 - Get Locker Station Not Found
 
-PUT http://localhost:8080/api/locker-stations/999999
+GET {{baseUrl}}/api/locker-stations/{{notFoundId}}
+
+
+### ERROR 04 - Update Locker Station Not Found
+
+PUT {{baseUrl}}/api/locker-stations/{{notFoundId}}
 Content-Type: application/json
 
 {
   "name": "Locker Station Not Found",
   "model": "LOCKER PRO",
-  "manufacturer": "LOCKEROPS",
+  "manufacturer": "FINOCIO",
   "status": "ACTIVE",
-  "location": "Barcelona Sants",
-  "imageUrl": "https://lockerops.example.com/images/locker-station-not-found.jpg"
+  "location": "Madrid Centro",
+  "imageUrl": "https://example.com/locker-not-found.jpg"
 }
 
-###
 
-### DEMO 11 - Delete Locker Station (Not Found)
+### ERROR 05 - Delete Locker Station Not Found
 
-DELETE http://localhost:8080/api/locker-stations/999999
-
-###
-
-### DEMO 12 - Get All Locker Stations (Final State)
-
-GET http://localhost:8080/api/locker-stations
+DELETE {{baseUrl}}/api/locker-stations/{{notFoundId}}
