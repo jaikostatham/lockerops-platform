@@ -4,29 +4,31 @@
 # Backend:
 # http://localhost:8080
 #
-# Endpoint:
-# /api/locker-stations
-#
-# Nota:
-# - Ejecuta primero DEMO 02.
-# - Copia el "id" devuelto por el POST.
-# - Pega ese valor en @demoLockerStationId.
+# Notes:
+# - Update the variables below with the ids returned by the API.
+# - @demoLockerStationId is used for LockerStation CRUD tests.
+# - @compartmentLockerStationId is used for LockerCompartment tests.
+# - @demoLockerCompartmentId is used for LockerCompartment CRUD tests.
 ###############################################################
 
 @baseUrl = http://localhost:8080
 @demoLockerStationId = 5
+@compartmentLockerStationId = 1
+@demoLockerCompartmentId = 1
 @notFoundId = 999999
 
+
 ###############################################################
-# HAPPY PATH - CRUD FLOW
+# LOCKER STATIONS - HAPPY PATH CRUD FLOW
 ###############################################################
 
-### DEMO 01 - Get All Locker Stations
+### STATION DEMO 01 - Get All Locker Stations
 
 GET {{baseUrl}}/api/locker-stations
 
 
-### DEMO 02 - Create Locker Station
+### STATION DEMO 02 - Create Locker Station
+# Copy the returned "id" into @demoLockerStationId if you want to use it below.
 
 POST {{baseUrl}}/api/locker-stations
 Content-Type: application/json
@@ -41,13 +43,12 @@ Content-Type: application/json
 }
 
 
-### DEMO 03 - Get Locker Station By Id
-# Cambia @demoLockerStationId por el id devuelto en DEMO 02.
+### STATION DEMO 03 - Get Locker Station By Id
 
 GET {{baseUrl}}/api/locker-stations/{{demoLockerStationId}}
 
 
-### DEMO 04 - Update Locker Station
+### STATION DEMO 04 - Update Locker Station
 
 PUT {{baseUrl}}/api/locker-stations/{{demoLockerStationId}}
 Content-Type: application/json
@@ -62,31 +63,32 @@ Content-Type: application/json
 }
 
 
-### DEMO 05 - Verify Update
+### STATION DEMO 05 - Verify Locker Station Update
 
 GET {{baseUrl}}/api/locker-stations/{{demoLockerStationId}}
 
 
-### DEMO 06 - Delete Locker Station
+### STATION DEMO 06 - Delete Locker Station
+# Execute this only if the station has no compartments associated.
 
 DELETE {{baseUrl}}/api/locker-stations/{{demoLockerStationId}}
 
 
-### DEMO 07 - Verify Delete
+### STATION DEMO 07 - Verify Deleted Locker Station
 
 GET {{baseUrl}}/api/locker-stations/{{demoLockerStationId}}
 
 
-### DEMO 08 - Get All Locker Stations Final State
+### STATION DEMO 08 - Get All Locker Stations Final State
 
 GET {{baseUrl}}/api/locker-stations
 
 
 ###############################################################
-# ERROR CASES - VALIDATION AND EXCEPTION HANDLING
+# LOCKER STATIONS - ERROR CASES
 ###############################################################
 
-### ERROR 01 - Create Locker Station With Validation Errors
+### STATION ERROR 01 - Create Locker Station With Validation Errors
 
 POST {{baseUrl}}/api/locker-stations
 Content-Type: application/json
@@ -101,7 +103,7 @@ Content-Type: application/json
 }
 
 
-### ERROR 02 - Create Locker Station With Invalid Enum
+### STATION ERROR 02 - Create Locker Station With Invalid Enum
 
 POST {{baseUrl}}/api/locker-stations
 Content-Type: application/json
@@ -116,12 +118,12 @@ Content-Type: application/json
 }
 
 
-### ERROR 03 - Get Locker Station Not Found
+### STATION ERROR 03 - Get Locker Station Not Found
 
 GET {{baseUrl}}/api/locker-stations/{{notFoundId}}
 
 
-### ERROR 04 - Update Locker Station Not Found
+### STATION ERROR 04 - Update Locker Station Not Found
 
 PUT {{baseUrl}}/api/locker-stations/{{notFoundId}}
 Content-Type: application/json
@@ -136,6 +138,170 @@ Content-Type: application/json
 }
 
 
-### ERROR 05 - Delete Locker Station Not Found
+### STATION ERROR 05 - Delete Locker Station Not Found
 
 DELETE {{baseUrl}}/api/locker-stations/{{notFoundId}}
+
+
+###############################################################
+# LOCKER COMPARTMENTS - HAPPY PATH CRUD FLOW
+#
+# Notes:
+# - Use an existing LockerStation.
+# - Copy its id into @compartmentLockerStationId.
+# - After creating a compartment, copy the returned "id" into
+#   @demoLockerCompartmentId.
+###############################################################
+
+### COMPARTMENT DEMO 01 - Create Locker Compartment
+
+POST {{baseUrl}}/api/locker-stations/{{compartmentLockerStationId}}/compartments
+Content-Type: application/json
+
+{
+  "compartmentNumber": 1,
+  "size": "MEDIUM",
+  "status": "AVAILABLE"
+}
+
+
+### COMPARTMENT DEMO 02 - Get Locker Compartments By Station Id
+
+GET {{baseUrl}}/api/locker-stations/{{compartmentLockerStationId}}/compartments
+
+
+### COMPARTMENT DEMO 03 - Get Locker Compartment By Id
+
+GET {{baseUrl}}/api/locker-compartments/{{demoLockerCompartmentId}}
+
+
+### COMPARTMENT DEMO 04 - Update Locker Compartment
+
+PUT {{baseUrl}}/api/locker-compartments/{{demoLockerCompartmentId}}
+Content-Type: application/json
+
+{
+  "compartmentNumber": 2,
+  "size": "LARGE",
+  "status": "OUT_OF_SERVICE"
+}
+
+
+### COMPARTMENT DEMO 05 - Verify Locker Compartment Update
+
+GET {{baseUrl}}/api/locker-compartments/{{demoLockerCompartmentId}}
+
+
+### COMPARTMENT DEMO 06 - Create Another Locker Compartment In Same Station
+
+POST {{baseUrl}}/api/locker-stations/{{compartmentLockerStationId}}/compartments
+Content-Type: application/json
+
+{
+  "compartmentNumber": 3,
+  "size": "SMALL",
+  "status": "AVAILABLE"
+}
+
+
+### COMPARTMENT DEMO 07 - Get Locker Compartments By Station Id Final State
+
+GET {{baseUrl}}/api/locker-stations/{{compartmentLockerStationId}}/compartments
+
+
+### COMPARTMENT DEMO 08 - Delete Locker Compartment
+
+DELETE {{baseUrl}}/api/locker-compartments/{{demoLockerCompartmentId}}
+
+
+### COMPARTMENT DEMO 09 - Verify Deleted Locker Compartment
+
+GET {{baseUrl}}/api/locker-compartments/{{demoLockerCompartmentId}}
+
+
+###############################################################
+# LOCKER COMPARTMENTS - ERROR CASES
+###############################################################
+
+### COMPARTMENT ERROR 01 - Create Duplicate Locker Compartment In Same Station
+# This expects that compartmentNumber 2 already exists in @compartmentLockerStationId.
+# Run COMPARTMENT DEMO 04 first if needed.
+
+POST {{baseUrl}}/api/locker-stations/{{compartmentLockerStationId}}/compartments
+Content-Type: application/json
+
+{
+  "compartmentNumber": 2,
+  "size": "SMALL",
+  "status": "AVAILABLE"
+}
+
+
+### COMPARTMENT ERROR 02 - Create Locker Compartment In Non Existing Station
+
+POST {{baseUrl}}/api/locker-stations/{{notFoundId}}/compartments
+Content-Type: application/json
+
+{
+  "compartmentNumber": 1,
+  "size": "MEDIUM",
+  "status": "AVAILABLE"
+}
+
+
+### COMPARTMENT ERROR 03 - Create Locker Compartment With Validation Errors
+
+POST {{baseUrl}}/api/locker-stations/{{compartmentLockerStationId}}/compartments
+Content-Type: application/json
+
+{
+  "compartmentNumber": 0,
+  "size": "MEDIUM",
+  "status": "AVAILABLE"
+}
+
+
+### COMPARTMENT ERROR 04 - Create Locker Compartment With Invalid Size Enum
+
+POST {{baseUrl}}/api/locker-stations/{{compartmentLockerStationId}}/compartments
+Content-Type: application/json
+
+{
+  "compartmentNumber": 4,
+  "size": "BIG",
+  "status": "AVAILABLE"
+}
+
+
+### COMPARTMENT ERROR 05 - Create Locker Compartment With Invalid Status Enum
+
+POST {{baseUrl}}/api/locker-stations/{{compartmentLockerStationId}}/compartments
+Content-Type: application/json
+
+{
+  "compartmentNumber": 4,
+  "size": "MEDIUM",
+  "status": "BLOCKED"
+}
+
+
+### COMPARTMENT ERROR 06 - Get Locker Compartment Not Found
+
+GET {{baseUrl}}/api/locker-compartments/{{notFoundId}}
+
+
+### COMPARTMENT ERROR 07 - Update Locker Compartment Not Found
+
+PUT {{baseUrl}}/api/locker-compartments/{{notFoundId}}
+Content-Type: application/json
+
+{
+  "compartmentNumber": 1,
+  "size": "MEDIUM",
+  "status": "AVAILABLE"
+}
+
+
+### COMPARTMENT ERROR 08 - Delete Locker Compartment Not Found
+
+DELETE {{baseUrl}}/api/locker-compartments/{{notFoundId}}
