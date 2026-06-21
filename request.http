@@ -4,6 +4,15 @@
 # Backend:
 # http://localhost:8080
 #
+# Local DB note:
+# - This feature replaces plain access_codes.code with code_hash/code_preview.
+# - If your local PostgreSQL DB already has old development data in
+#   tickets/access_codes, do not expect ddl-auto=update to transform it safely.
+# - For disposable local data only, the simplest manual reset is:
+#   DROP TABLE IF EXISTS access_codes CASCADE;
+#   DROP TABLE IF EXISTS tickets CASCADE;
+# - Then restart the backend and Hibernate will recreate the tables.
+#
 # Notes:
 # - Update the variables below with the ids returned by the API.
 # - @demoLockerStationId is used for LockerStation CRUD tests.
@@ -23,6 +32,15 @@
 @demoReservationId = 1
 @reservationLockerCompartmentId = 2
 @reservationCustomerReference = KIOSK-SESSION-001
+@demoTicketCode = TCK-8F3K2Q9Z
+@demoAccessCode = 7K29QX4B
+@invalidTicketCode = TCK-INVALID
+@invalidAccessCode = BADCODE
+
+# Reservation expiration scheduler can be configured with:
+# RESERVATION_EXPIRATION_ENABLED=true
+# RESERVATION_EXPIRATION_FIXED_DELAY_MS=60000
+# RESERVATION_EXPIRATION_BATCH_SIZE=50
 
 ###############################################################
 # LOCKER STATIONS - HAPPY PATH CRUD FLOW
@@ -320,8 +338,10 @@ DELETE {{baseUrl}}/api/locker-compartments/{{notFoundId}}
 # Notes:
 # - Use an existing AVAILABLE LockerCompartment.
 # - Copy its id into @reservationLockerCompartmentId.
-# - After creating a reservation, copy the returned "id" into
-# @demoReservationId.
+# - After creating a reservation, copy the returned "reservationId" into
+#   @demoReservationId.
+# - Copy the returned "ticketCode" into @demoTicketCode.
+# - Copy the returned "accessCode" into @demoAccessCode.
 # - Creating a reservation changes the LockerCompartment status
 # from AVAILABLE to RESERVED.
 # - Cancelling a reservation changes the LockerCompartment status
@@ -341,7 +361,7 @@ GET {{baseUrl}}/api/locker-stations/{{compartmentLockerStationId}}/compartments
 GET {{baseUrl}}/api/locker-compartments/{{reservationLockerCompartmentId}}
 
 ### RESERVATION DEMO 03 - Create Reservation
-# Copy the returned "id" into @demoReservationId.
+# Copy reservationId, ticketCode and accessCode into the variables above.
 
 POST {{baseUrl}}/api/reservations
 Content-Type: application/json
@@ -350,6 +370,55 @@ Content-Type: application/json
   "lockerCompartmentId": {{reservationLockerCompartmentId}},
   "durationMinutes": 120,
   "customerReference": "{{reservationCustomerReference}}"
+}
+
+### RESERVATION DEMO 03A - Validate Access Code
+# Expected: 200 OK and granted = true.
+
+POST {{baseUrl}}/api/access-codes/validate
+Content-Type: application/json
+
+{
+  "ticketCode": "{{demoTicketCode}}",
+  "accessCode": "{{demoAccessCode}}"
+}
+
+### RESERVATION DEMO 03B - Validate Same Access Code Again
+# Expected: 200 OK because access codes are reusable while active.
+# The backend increments useCount internally.
+
+POST {{baseUrl}}/api/access-codes/validate
+Content-Type: application/json
+
+{
+  "ticketCode": "{{demoTicketCode}}",
+  "accessCode": "{{demoAccessCode}}"
+}
+
+### RESERVATION DEMO 03C - Create Short Reservation For Expiration Check
+# Copy reservationId, ticketCode and accessCode into the variables above.
+# Expected: after the configured scheduler delay, the reservation expires,
+# the compartment becomes AVAILABLE, and validation returns 409 with code 5102.
+
+POST {{baseUrl}}/api/reservations
+Content-Type: application/json
+
+{
+  "lockerCompartmentId": {{reservationLockerCompartmentId}},
+  "durationMinutes": 1,
+  "customerReference": "KIOSK-SESSION-EXPIRATION"
+}
+
+### RESERVATION DEMO 03D - Validate Expired Access Code
+# Run after the short reservation has passed its reservedUntil and the scheduler has run.
+# Expected: 409 Conflict with code 5102.
+
+POST {{baseUrl}}/api/access-codes/validate
+Content-Type: application/json
+
+{
+  "ticketCode": "{{demoTicketCode}}",
+  "accessCode": "{{demoAccessCode}}"
 }
 
 ### RESERVATION DEMO 04 - Get All Reservations
@@ -368,6 +437,17 @@ GET {{baseUrl}}/api/locker-compartments/{{reservationLockerCompartmentId}}
 ### RESERVATION DEMO 07 - Cancel Reservation
 
 PATCH {{baseUrl}}/api/reservations/{{demoReservationId}}/cancel
+
+### RESERVATION DEMO 07A - Validate Revoked Access Code
+# Expected: 409 Conflict with code 5103.
+
+POST {{baseUrl}}/api/access-codes/validate
+Content-Type: application/json
+
+{
+  "ticketCode": "{{demoTicketCode}}",
+  "accessCode": "{{demoAccessCode}}"
+}
 
 ### RESERVATION DEMO 08 - Verify Reservation Was Cancelled
 # Expected reservation status: CANCELLED.
@@ -446,4 +526,26 @@ Content-Type: application/json
   "lockerCompartmentId": "invalid-id",
   "durationMinutes": 120,
   "customerReference": "KIOSK-SESSION-INVALID-TYPE"
+}
+
+### ACCESS CODE ERROR 01 - Validate With Invalid Ticket Code
+# Expected: 404 Not Found with code 5106.
+
+POST {{baseUrl}}/api/access-codes/validate
+Content-Type: application/json
+
+{
+  "ticketCode": "{{invalidTicketCode}}",
+  "accessCode": "{{demoAccessCode}}"
+}
+
+### ACCESS CODE ERROR 02 - Validate With Invalid Access Code
+# Expected: 404 Not Found with code 5106.
+
+POST {{baseUrl}}/api/access-codes/validate
+Content-Type: application/json
+
+{
+  "ticketCode": "{{demoTicketCode}}",
+  "accessCode": "{{invalidAccessCode}}"
 }

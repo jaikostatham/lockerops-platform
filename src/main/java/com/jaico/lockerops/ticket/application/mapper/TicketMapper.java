@@ -35,7 +35,7 @@ public class TicketMapper {
     public AccessCodeResponse toAccessCodeResponse(AccessCode accessCode) {
         return new AccessCodeResponse(
                 accessCode.getId(),
-                accessCode.getCode(),
+                accessCode.getCodePreview(),
                 accessCode.getStatus(),
                 accessCode.getValidFrom(),
                 accessCode.getExpiresAt(),
@@ -46,7 +46,7 @@ public class TicketMapper {
     public ReservationTicketResponse toReservationTicketResponse(
             Reservation reservation,
             Ticket ticket,
-            AccessCode accessCode
+            String rawAccessCode
     ) {
         LockerCompartment lockerCompartment = reservation.getLockerCompartment();
 
@@ -61,7 +61,7 @@ public class TicketMapper {
                 reservation.getReservedUntil(),
                 reservation.getCustomerReference(),
                 ticket.getTicketCode(),
-                accessCode.getCode()
+                rawAccessCode
         );
     }
 

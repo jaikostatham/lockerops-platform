@@ -7,33 +7,30 @@ import com.jaico.lockerops.ticket.api.dto.response.ReservationTicketResponse;
 import com.jaico.lockerops.ticket.api.dto.response.TicketResponse;
 import com.jaico.lockerops.ticket.application.mapper.TicketMapper;
 import com.jaico.lockerops.ticket.domain.enums.TicketStatus;
-import com.jaico.lockerops.ticket.domain.model.AccessCode;
 import com.jaico.lockerops.ticket.domain.model.Ticket;
 import com.jaico.lockerops.ticket.infrastructure.persistence.repository.TicketRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.security.SecureRandom;
 import java.time.Instant;
 
 @Service
 public class TicketService {
 
-    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
-    private static final String TICKET_CODE_PREFIX = "TCK-";
-    private static final int TICKET_CODE_BOUND = 100_000_000;
-
     private final TicketRepository ticketRepository;
     private final AccessCodeService accessCodeService;
+    private final TicketCodeGenerator ticketCodeGenerator;
     private final TicketMapper ticketMapper;
 
     public TicketService(
             TicketRepository ticketRepository,
             AccessCodeService accessCodeService,
+            TicketCodeGenerator ticketCodeGenerator,
             TicketMapper ticketMapper
     ) {
         this.ticketRepository = ticketRepository;
         this.accessCodeService = accessCodeService;
+        this.ticketCodeGenerator = ticketCodeGenerator;
         this.ticketMapper = ticketMapper;
     }
 
@@ -54,13 +51,17 @@ public class TicketService {
         );
 
         Ticket savedTicket = ticketRepository.save(ticket);
-        AccessCode accessCode = accessCodeService.issueAccessCode(
+        IssuedAccessCode issuedAccessCode = accessCodeService.issueAccessCode(
                 savedTicket,
                 reservation.getReservedFrom(),
                 reservation.getReservedUntil()
         );
 
-        return ticketMapper.toReservationTicketResponse(reservation, savedTicket, accessCode);
+        return ticketMapper.toReservationTicketResponse(
+                reservation,
+                savedTicket,
+                issuedAccessCode.getRawAccessCode()
+        );
     }
 
     @Transactional(readOnly = true)
@@ -89,11 +90,25 @@ public class TicketService {
                 });
     }
 
+    @Transactional
+    public void expireTicketForReservation(Reservation reservation, Instant expiredAt) {
+        ticketRepository.findByReservation_Id(reservation.getId())
+                .ifPresent(ticket -> {
+                    if (ticket.getStatus() != TicketStatus.ISSUED) {
+                        return;
+                    }
+
+                    ticket.setStatus(TicketStatus.EXPIRED);
+                    ticket.setExpiredAt(expiredAt);
+                    accessCodeService.expireActiveAccessCodes(ticket, expiredAt);
+                });
+    }
+
     private String generateUniqueTicketCode() {
         String ticketCode;
 
         do {
-            ticketCode = TICKET_CODE_PREFIX + "%08d".formatted(SECURE_RANDOM.nextInt(TICKET_CODE_BOUND));
+            ticketCode = ticketCodeGenerator.generate();
         } while (ticketRepository.existsByTicketCode(ticketCode));
 
         return ticketCode;

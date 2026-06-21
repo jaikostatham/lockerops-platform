@@ -4,6 +4,7 @@ import com.jaico.lockerops.shared.exception.ApiErrorResponse;
 import com.jaico.lockerops.ticket.api.dto.request.ValidateAccessCodeRequest;
 import com.jaico.lockerops.ticket.api.dto.response.AccessValidationResponse;
 import com.jaico.lockerops.ticket.application.service.AccessCodeService;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -40,7 +41,24 @@ public class AccessCodeController {
     @ApiResponses({
             @ApiResponse(
                     responseCode = "200",
-                    description = "Access code validated successfully"
+                    description = "Access code validated successfully",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = AccessValidationResponse.class),
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "granted": true,
+                                              "ticketCode": "TCK-8F3K2Q9Z",
+                                              "reservationId": 1,
+                                              "lockerCompartmentId": 10,
+                                              "compartmentNumber": 5,
+                                              "reservedUntil": "2026-06-21T17:00:00Z",
+                                              "validatedAt": "2026-06-21T16:15:00Z"
+                                            }
+                                            """
+                            )
+                    )
             ),
             @ApiResponse(
                     responseCode = "400",
@@ -52,7 +70,7 @@ public class AccessCodeController {
             ),
             @ApiResponse(
                     responseCode = "404",
-                    description = "Access code not found",
+                    description = "Ticket or access code not found",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = ApiErrorResponse.class)
@@ -68,10 +86,29 @@ public class AccessCodeController {
             )
     })
     public ResponseEntity<AccessValidationResponse> validateAccessCode(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    required = true,
+                    description = "Ticket code and access code credentials to validate.",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = ValidateAccessCodeRequest.class),
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "ticketCode": "TCK-8F3K2Q9Z",
+                                              "accessCode": "7K29QX4B"
+                                            }
+                                            """
+                            )
+                    )
+            )
             @Valid @RequestBody ValidateAccessCodeRequest request
     ) {
         AccessValidationResponse response =
-                accessCodeService.validateAccessCode(request.getCode());
+                accessCodeService.validateAccessCode(
+                        request.getTicketCode(),
+                        request.getAccessCode()
+                );
 
         return ResponseEntity.ok(response);
     }

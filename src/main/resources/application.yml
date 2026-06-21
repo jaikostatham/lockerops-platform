@@ -33,6 +33,16 @@ server:
     include-message: never
     include-stacktrace: never
 
+lockerops:
+  reservations:
+    expiration:
+      enabled: ${RESERVATION_EXPIRATION_ENABLED:true}
+      fixed-delay-ms: ${RESERVATION_EXPIRATION_FIXED_DELAY_MS:60000}
+      batch-size: ${RESERVATION_EXPIRATION_BATCH_SIZE:50}
+  access-code:
+    hash-secret: ${ACCESS_CODE_HASH_SECRET:dev-only-change-me}
+    length: ${ACCESS_CODE_LENGTH:8}
+
 service:
   code:
     0: "Proceso realizado correctamente"
@@ -54,3 +64,4 @@ service:
     5103: "El código de acceso ha sido revocado"
     5104: "El código de acceso no está activo"
     5105: "La reserva asociada al código de acceso no está activa"
+    5106: "El ticket o código de acceso no es válido"

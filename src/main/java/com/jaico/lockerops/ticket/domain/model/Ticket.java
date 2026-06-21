@@ -10,16 +10,36 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 import java.time.Instant;
 
 @Entity
-@Table(name = "tickets")
+@Table(
+        name = "tickets",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_tickets_ticket_code",
+                        columnNames = "ticket_code"
+                ),
+                @UniqueConstraint(
+                        name = "uk_tickets_reservation_id",
+                        columnNames = "reservation_id"
+                )
+        },
+        indexes = {
+                @Index(
+                        name = "idx_tickets_status",
+                        columnList = "status"
+                )
+        }
+)
 public class Ticket {
 
     @Id
