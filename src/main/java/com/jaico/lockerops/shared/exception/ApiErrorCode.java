@@ -26,7 +26,8 @@ public enum ApiErrorCode {
     ACCESS_CODE_EXPIRED(5102, HttpStatus.CONFLICT),
     ACCESS_CODE_REVOKED(5103, HttpStatus.CONFLICT),
     ACCESS_CODE_NOT_ACTIVE(5104, HttpStatus.CONFLICT),
-    ACCESS_CODE_RESERVATION_NOT_ACTIVE(5105, HttpStatus.CONFLICT);
+    ACCESS_CODE_RESERVATION_NOT_ACTIVE(5105, HttpStatus.CONFLICT),
+    ACCESS_CREDENTIALS_INVALID(5106, HttpStatus.NOT_FOUND);
 
     private final int code;
     private final HttpStatus status;

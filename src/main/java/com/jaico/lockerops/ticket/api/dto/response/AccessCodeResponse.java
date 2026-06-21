@@ -7,7 +7,7 @@ import java.time.Instant;
 public class AccessCodeResponse {
 
     private Long id;
-    private String code;
+    private String codePreview;
     private AccessCodeStatus status;
     private Instant validFrom;
     private Instant expiresAt;
@@ -15,14 +15,14 @@ public class AccessCodeResponse {
 
     public AccessCodeResponse(
             Long id,
-            String code,
+            String codePreview,
             AccessCodeStatus status,
             Instant validFrom,
             Instant expiresAt,
             Integer useCount
     ) {
         this.id = id;
-        this.code = code;
+        this.codePreview = codePreview;
         this.status = status;
         this.validFrom = validFrom;
         this.expiresAt = expiresAt;
@@ -33,8 +33,8 @@ public class AccessCodeResponse {
         return id;
     }
 
-    public String getCode() {
-        return code;
+    public String getCodePreview() {
+        return codePreview;
     }
 
     public AccessCodeStatus getStatus() {

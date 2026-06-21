@@ -10,6 +10,10 @@ import com.jaico.lockerops.reservation.infrastructure.persistence.repository.Res
 import com.jaico.lockerops.station.domain.enums.LockerStationStatus;
 import com.jaico.lockerops.station.domain.model.LockerStation;
 import com.jaico.lockerops.station.infrastructure.persistence.repository.LockerStationRepository;
+import com.jaico.lockerops.ticket.application.service.AccessCodeHasher;
+import com.jaico.lockerops.ticket.domain.enums.AccessCodeStatus;
+import com.jaico.lockerops.ticket.domain.model.AccessCode;
+import com.jaico.lockerops.ticket.domain.model.Ticket;
 import com.jaico.lockerops.ticket.infrastructure.persistence.repository.AccessCodeRepository;
 import com.jaico.lockerops.ticket.infrastructure.persistence.repository.TicketRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -55,6 +59,9 @@ class TicketAccessCodesIntegrationTests {
     @Autowired
     private AccessCodeRepository accessCodeRepository;
 
+    @Autowired
+    private AccessCodeHasher accessCodeHasher;
+
     @BeforeEach
     void setUp() {
         accessCodeRepository.deleteAll();
@@ -84,16 +91,63 @@ class TicketAccessCodesIntegrationTests {
                 .getContentAsString();
 
         JsonNode response = objectMapper.readTree(createReservationResponse);
+        String ticketCode = response.get("ticketCode").asText();
         String accessCode = response.get("accessCode").asText();
 
-        validateAccessCode(accessCode);
-        validateAccessCode(accessCode);
+        validateAccessCode(ticketCode, accessCode);
+        validateAccessCode(ticketCode, accessCode);
 
-        assertThat(accessCodeRepository.findByCode(accessCode))
-                .isPresent()
-                .get()
-                .extracting(storedAccessCode -> storedAccessCode.getUseCount())
-                .isEqualTo(2);
+        Ticket ticket = ticketRepository.findByTicketCode(ticketCode).orElseThrow();
+        AccessCode storedAccessCode = accessCodeRepository
+                .findByTicket_IdAndCodeHash(ticket.getId(), accessCodeHasher.hash(accessCode))
+                .orElseThrow();
+
+        assertThat(storedAccessCode.getCodeHash()).isNotEqualTo(accessCode);
+        assertThat(storedAccessCode.getCodePreview()).isNotEqualTo(accessCode);
+        assertThat(storedAccessCode.getCodePreview()).isNotBlank();
+        assertThat(storedAccessCode.getStatus()).isEqualTo(AccessCodeStatus.ACTIVE);
+        assertThat(storedAccessCode.getUseCount()).isEqualTo(2);
+    }
+
+    @Test
+    void validateAccessCodeWithInvalidCredentialsReturnsGenericNotFoundError() throws Exception {
+        LockerCompartment lockerCompartment = createAvailableLockerCompartment();
+
+        String createReservationResponse = mockMvc.perform(post("/api/reservations")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "lockerCompartmentId", lockerCompartment.getId(),
+                                "durationMinutes", 60
+                        ))))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode response = objectMapper.readTree(createReservationResponse);
+        String ticketCode = response.get("ticketCode").asText();
+        String accessCode = response.get("accessCode").asText();
+
+        mockMvc.perform(post("/api/access-codes/validate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "ticketCode", "TCK-INVALID",
+                                "accessCode", accessCode
+                        ))))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value(5106));
+
+        mockMvc.perform(post("/api/access-codes/validate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "ticketCode", ticketCode,
+                                "accessCode", "BADCODE"
+                        ))))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value(5106));
+
+        assertThat(accessCodeRepository.findAll())
+                .allMatch(storedAccessCode -> !storedAccessCode.getCodeHash().equals(accessCode));
     }
 
     @Test
@@ -113,6 +167,7 @@ class TicketAccessCodesIntegrationTests {
 
         JsonNode response = objectMapper.readTree(createReservationResponse);
         Long reservationId = response.get("reservationId").asLong();
+        String ticketCode = response.get("ticketCode").asText();
         String accessCode = response.get("accessCode").asText();
 
         mockMvc.perform(patch("/api/reservations/{id}/cancel", reservationId))
@@ -121,17 +176,19 @@ class TicketAccessCodesIntegrationTests {
         mockMvc.perform(post("/api/access-codes/validate")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
-                                "code", accessCode
+                                "ticketCode", ticketCode,
+                                "accessCode", accessCode
                         ))))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value(5103));
     }
 
-    private void validateAccessCode(String accessCode) throws Exception {
+    private void validateAccessCode(String ticketCode, String accessCode) throws Exception {
         mockMvc.perform(post("/api/access-codes/validate")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
-                                "code", accessCode
+                                "ticketCode", ticketCode,
+                                "accessCode", accessCode
                         ))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.granted").value(true))

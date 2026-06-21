@@ -9,24 +9,47 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 import java.time.Instant;
 
 @Entity
-@Table(name = "access_codes")
+@Table(
+        name = "access_codes",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_access_codes_code_hash",
+                        columnNames = "code_hash"
+                )
+        },
+        indexes = {
+                @Index(
+                        name = "idx_access_codes_ticket_id",
+                        columnList = "ticket_id"
+                ),
+                @Index(
+                        name = "idx_access_codes_ticket_id_status",
+                        columnList = "ticket_id,status"
+                )
+        }
+)
 public class AccessCode {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, updatable = false, length = 20)
-    private String code;
+    @Column(name = "code_hash", nullable = false, unique = true, updatable = false, length = 100)
+    private String codeHash;
+
+    @Column(name = "code_preview", nullable = false, updatable = false, length = 20)
+    private String codePreview;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ticket_id", nullable = false)
@@ -64,13 +87,15 @@ public class AccessCode {
     }
 
     public AccessCode(
-            String code,
+            String codeHash,
+            String codePreview,
             Ticket ticket,
             AccessCodeStatus status,
             Instant validFrom,
             Instant expiresAt
     ) {
-        this.code = code;
+        this.codeHash = codeHash;
+        this.codePreview = codePreview;
         this.ticket = ticket;
         this.status = status;
         this.validFrom = validFrom;
@@ -99,8 +124,12 @@ public class AccessCode {
         return id;
     }
 
-    public String getCode() {
-        return code;
+    public String getCodeHash() {
+        return codeHash;
+    }
+
+    public String getCodePreview() {
+        return codePreview;
     }
 
     public Ticket getTicket() {

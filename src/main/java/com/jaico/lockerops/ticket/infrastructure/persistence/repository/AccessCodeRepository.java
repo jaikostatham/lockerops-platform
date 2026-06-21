@@ -9,11 +9,11 @@ import java.util.Optional;
 
 public interface AccessCodeRepository extends JpaRepository<AccessCode, Long> {
 
-    Optional<AccessCode> findByCode(String code);
+    Optional<AccessCode> findByTicket_IdAndCodeHash(Long ticketId, String codeHash);
 
     List<AccessCode> findByTicket_IdAndStatus(Long ticketId, AccessCodeStatus status);
 
     Optional<AccessCode> findFirstByTicket_IdOrderByCreatedAtDesc(Long ticketId);
 
-    boolean existsByCode(String code);
+    boolean existsByCodeHash(String codeHash);
 }

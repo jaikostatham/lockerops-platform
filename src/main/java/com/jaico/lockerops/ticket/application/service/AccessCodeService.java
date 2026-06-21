@@ -10,50 +10,69 @@ import com.jaico.lockerops.ticket.domain.enums.TicketStatus;
 import com.jaico.lockerops.ticket.domain.model.AccessCode;
 import com.jaico.lockerops.ticket.domain.model.Ticket;
 import com.jaico.lockerops.ticket.infrastructure.persistence.repository.AccessCodeRepository;
+import com.jaico.lockerops.ticket.infrastructure.persistence.repository.TicketRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.List;
 
 @Service
 public class AccessCodeService {
 
-    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
-    private static final int ACCESS_CODE_BOUND = 1_000_000;
-
     private final AccessCodeRepository accessCodeRepository;
+    private final TicketRepository ticketRepository;
+    private final AccessCodeGenerator accessCodeGenerator;
+    private final AccessCodeHasher accessCodeHasher;
     private final TicketMapper ticketMapper;
 
     public AccessCodeService(
             AccessCodeRepository accessCodeRepository,
+            TicketRepository ticketRepository,
+            AccessCodeGenerator accessCodeGenerator,
+            AccessCodeHasher accessCodeHasher,
             TicketMapper ticketMapper
     ) {
         this.accessCodeRepository = accessCodeRepository;
+        this.ticketRepository = ticketRepository;
+        this.accessCodeGenerator = accessCodeGenerator;
+        this.accessCodeHasher = accessCodeHasher;
         this.ticketMapper = ticketMapper;
     }
 
-    public AccessCode issueAccessCode(
+    public IssuedAccessCode issueAccessCode(
             Ticket ticket,
             Instant validFrom,
             Instant expiresAt
     ) {
+        String rawAccessCode = generateUniqueAccessCode();
+
         AccessCode accessCode = new AccessCode(
-                generateUniqueAccessCode(),
+                accessCodeHasher.hash(rawAccessCode),
+                accessCodeHasher.preview(rawAccessCode),
                 ticket,
                 AccessCodeStatus.ACTIVE,
                 validFrom,
                 expiresAt
         );
 
-        return accessCodeRepository.save(accessCode);
+        AccessCode savedAccessCode = accessCodeRepository.save(accessCode);
+
+        return new IssuedAccessCode(savedAccessCode, rawAccessCode);
     }
 
     @Transactional(noRollbackFor = ApiException.class)
-    public AccessValidationResponse validateAccessCode(String code) {
-        AccessCode accessCode = accessCodeRepository.findByCode(code)
-                .orElseThrow(() -> new ApiException(ApiErrorCode.ACCESS_CODE_NOT_FOUND));
+    public AccessValidationResponse validateAccessCode(
+            String ticketCode,
+            String rawAccessCode
+    ) {
+        Ticket ticket = ticketRepository.findByTicketCode(ticketCode)
+                .orElseThrow(() -> new ApiException(ApiErrorCode.ACCESS_CREDENTIALS_INVALID));
+
+        String codeHash = accessCodeHasher.hash(rawAccessCode);
+        AccessCode accessCode = accessCodeRepository
+                .findByTicket_IdAndCodeHash(ticket.getId(), codeHash)
+                .orElseThrow(() -> new ApiException(ApiErrorCode.ACCESS_CREDENTIALS_INVALID));
 
         Instant now = Instant.now();
 
@@ -129,12 +148,14 @@ public class AccessCodeService {
     }
 
     private String generateUniqueAccessCode() {
-        String code;
+        String rawAccessCode;
+        String codeHash;
 
         do {
-            code = "%06d".formatted(SECURE_RANDOM.nextInt(ACCESS_CODE_BOUND));
-        } while (accessCodeRepository.existsByCode(code));
+            rawAccessCode = accessCodeGenerator.generate();
+            codeHash = accessCodeHasher.hash(rawAccessCode);
+        } while (accessCodeRepository.existsByCodeHash(codeHash));
 
-        return code;
+        return rawAccessCode;
     }
 }
