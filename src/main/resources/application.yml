@@ -32,3 +32,16 @@ server:
   error:
     include-message: never
     include-stacktrace: never
+
+service:
+  code:
+    0: "Proceso realizado correctamente"
+    1000: "La validación de la petición ha fallado"
+    1001: "El cuerpo de la petición no es válido"
+    2001: "Estación de lockers no encontrada con id: %s"
+    3001: "Compartimento no encontrado con id: %s"
+    3002: "Ya existe un compartimento con ese número en esta estación"
+    4001: "Reserva no encontrada con id: %s"
+    4002: "El compartimento no está disponible para reservar"
+    4003: "El compartimento ya tiene una reserva activa"
+    4004: "La reserva no se puede cancelar porque no está activa"

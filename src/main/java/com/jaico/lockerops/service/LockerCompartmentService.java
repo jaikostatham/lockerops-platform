@@ -3,8 +3,8 @@ package com.jaico.lockerops.service;
 import com.jaico.lockerops.dto.CreateLockerCompartmentRequest;
 import com.jaico.lockerops.dto.LockerCompartmentResponse;
 import com.jaico.lockerops.dto.UpdateLockerCompartmentRequest;
-import com.jaico.lockerops.exception.DuplicateResourceException;
-import com.jaico.lockerops.exception.ResourceNotFoundException;
+import com.jaico.lockerops.exception.ApiErrorCode;
+import com.jaico.lockerops.exception.ApiException;
 import com.jaico.lockerops.mapper.LockerCompartmentMapper;
 import com.jaico.lockerops.model.LockerCompartment;
 import com.jaico.lockerops.model.LockerStation;
@@ -106,15 +106,17 @@ public class LockerCompartmentService {
 
     private LockerStation findLockerStationOrThrow(Long id) {
         return lockerStationRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Estación de lockers no encontrada con id: " + id
+                .orElseThrow(() -> new ApiException(
+                        ApiErrorCode.LOCKER_STATION_NOT_FOUND,
+                        id
                 ));
     }
 
     private LockerCompartment findLockerCompartmentOrThrow(Long id) {
         return lockerCompartmentRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Compartimento no encontrado con id: " + id
+                .orElseThrow(() -> new ApiException(
+                        ApiErrorCode.LOCKER_COMPARTMENT_NOT_FOUND,
+                        id
                 ));
     }
 
@@ -126,8 +128,8 @@ public class LockerCompartmentService {
                 .existsByLockerStation_IdAndCompartmentNumber(lockerStationId, compartmentNumber);
 
         if (exists) {
-            throw new DuplicateResourceException(
-                    "Ya existe un compartimento con ese número en esta estación"
+            throw new ApiException(
+                    ApiErrorCode.LOCKER_COMPARTMENT_DUPLICATED_NUMBER
             );
         }
     }

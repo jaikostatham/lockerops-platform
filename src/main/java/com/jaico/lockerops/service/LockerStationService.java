@@ -3,7 +3,8 @@ package com.jaico.lockerops.service;
 import com.jaico.lockerops.dto.CreateLockerStationRequest;
 import com.jaico.lockerops.dto.LockerStationResponse;
 import com.jaico.lockerops.dto.UpdateLockerStationRequest;
-import com.jaico.lockerops.exception.ResourceNotFoundException;
+import com.jaico.lockerops.exception.ApiErrorCode;
+import com.jaico.lockerops.exception.ApiException;
 import com.jaico.lockerops.mapper.LockerStationMapper;
 import com.jaico.lockerops.model.LockerStation;
 import com.jaico.lockerops.repository.LockerStationRepository;
@@ -72,8 +73,9 @@ public class LockerStationService {
 
     private LockerStation findLockerStationOrThrow(Long id) {
         return lockerStationRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Estación de lockers no encontrada con id: " + id
+                .orElseThrow(() -> new ApiException(
+                        ApiErrorCode.LOCKER_STATION_NOT_FOUND,
+                        id
                 ));
     }
 }
