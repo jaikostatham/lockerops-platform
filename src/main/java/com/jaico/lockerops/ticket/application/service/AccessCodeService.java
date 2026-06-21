@@ -61,7 +61,7 @@ public class AccessCodeService {
         return new IssuedAccessCode(savedAccessCode, rawAccessCode);
     }
 
-    @Transactional(noRollbackFor = ApiException.class)
+    @Transactional
     public AccessValidationResponse validateAccessCode(
             String ticketCode,
             String rawAccessCode
@@ -92,6 +92,13 @@ public class AccessCodeService {
         });
     }
 
+    public void expireActiveAccessCodes(Ticket ticket, Instant expiredAt) {
+        List<AccessCode> activeAccessCodes =
+                accessCodeRepository.findByTicket_IdAndStatus(ticket.getId(), AccessCodeStatus.ACTIVE);
+
+        activeAccessCodes.forEach(accessCode -> accessCode.setStatus(AccessCodeStatus.EXPIRED));
+    }
+
     private void validateAccessCodeCanBeUsed(AccessCode accessCode, Instant now) {
         Ticket ticket = accessCode.getTicket();
 
@@ -112,7 +119,6 @@ public class AccessCodeService {
         }
 
         if (now.isAfter(accessCode.getExpiresAt())) {
-            markAccessCodeAndTicketAsExpired(accessCode, ticket, now);
             throw new ApiException(ApiErrorCode.ACCESS_CODE_EXPIRED);
         }
 
@@ -132,19 +138,6 @@ public class AccessCodeService {
 
         accessCode.setLastUsedAt(usedAt);
         accessCode.setUseCount(accessCode.getUseCount() + 1);
-    }
-
-    private void markAccessCodeAndTicketAsExpired(
-            AccessCode accessCode,
-            Ticket ticket,
-            Instant expiredAt
-    ) {
-        accessCode.setStatus(AccessCodeStatus.EXPIRED);
-
-        if (ticket.getStatus() == TicketStatus.ISSUED) {
-            ticket.setStatus(TicketStatus.EXPIRED);
-            ticket.setExpiredAt(expiredAt);
-        }
     }
 
     private String generateUniqueAccessCode() {

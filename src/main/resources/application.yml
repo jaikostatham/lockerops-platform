@@ -34,6 +34,11 @@ server:
     include-stacktrace: never
 
 lockerops:
+  reservations:
+    expiration:
+      enabled: ${RESERVATION_EXPIRATION_ENABLED:true}
+      fixed-delay-ms: ${RESERVATION_EXPIRATION_FIXED_DELAY_MS:60000}
+      batch-size: ${RESERVATION_EXPIRATION_BATCH_SIZE:50}
   access-code:
     hash-secret: ${ACCESS_CODE_HASH_SECRET:dev-only-change-me}
     length: ${ACCESS_CODE_LENGTH:8}

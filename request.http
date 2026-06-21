@@ -37,6 +37,11 @@
 @invalidTicketCode = TCK-INVALID
 @invalidAccessCode = BADCODE
 
+# Reservation expiration scheduler can be configured with:
+# RESERVATION_EXPIRATION_ENABLED=true
+# RESERVATION_EXPIRATION_FIXED_DELAY_MS=60000
+# RESERVATION_EXPIRATION_BATCH_SIZE=50
+
 ###############################################################
 # LOCKER STATIONS - HAPPY PATH CRUD FLOW
 ###############################################################
@@ -381,6 +386,32 @@ Content-Type: application/json
 ### RESERVATION DEMO 03B - Validate Same Access Code Again
 # Expected: 200 OK because access codes are reusable while active.
 # The backend increments useCount internally.
+
+POST {{baseUrl}}/api/access-codes/validate
+Content-Type: application/json
+
+{
+  "ticketCode": "{{demoTicketCode}}",
+  "accessCode": "{{demoAccessCode}}"
+}
+
+### RESERVATION DEMO 03C - Create Short Reservation For Expiration Check
+# Copy reservationId, ticketCode and accessCode into the variables above.
+# Expected: after the configured scheduler delay, the reservation expires,
+# the compartment becomes AVAILABLE, and validation returns 409 with code 5102.
+
+POST {{baseUrl}}/api/reservations
+Content-Type: application/json
+
+{
+  "lockerCompartmentId": {{reservationLockerCompartmentId}},
+  "durationMinutes": 1,
+  "customerReference": "KIOSK-SESSION-EXPIRATION"
+}
+
+### RESERVATION DEMO 03D - Validate Expired Access Code
+# Run after the short reservation has passed its reservedUntil and the scheduler has run.
+# Expected: 409 Conflict with code 5102.
 
 POST {{baseUrl}}/api/access-codes/validate
 Content-Type: application/json

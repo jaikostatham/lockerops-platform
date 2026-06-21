@@ -90,6 +90,20 @@ public class TicketService {
                 });
     }
 
+    @Transactional
+    public void expireTicketForReservation(Reservation reservation, Instant expiredAt) {
+        ticketRepository.findByReservation_Id(reservation.getId())
+                .ifPresent(ticket -> {
+                    if (ticket.getStatus() != TicketStatus.ISSUED) {
+                        return;
+                    }
+
+                    ticket.setStatus(TicketStatus.EXPIRED);
+                    ticket.setExpiredAt(expiredAt);
+                    accessCodeService.expireActiveAccessCodes(ticket, expiredAt);
+                });
+    }
+
     private String generateUniqueTicketCode() {
         String ticketCode;
 
