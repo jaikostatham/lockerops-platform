@@ -2,8 +2,8 @@ package com.jaico.lockerops.service;
 
 import com.jaico.lockerops.dto.CreateReservationRequest;
 import com.jaico.lockerops.dto.ReservationResponse;
-import com.jaico.lockerops.exception.ConflictException;
-import com.jaico.lockerops.exception.ResourceNotFoundException;
+import com.jaico.lockerops.exception.ApiErrorCode;
+import com.jaico.lockerops.exception.ApiException;
 import com.jaico.lockerops.mapper.ReservationMapper;
 import com.jaico.lockerops.model.LockerCompartment;
 import com.jaico.lockerops.model.LockerCompartmentStatus;
@@ -107,22 +107,24 @@ public class ReservationService {
 
     private LockerCompartment findLockerCompartmentOrThrow(Long id) {
         return lockerCompartmentRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Compartimento no encontrado con id: " + id
+                .orElseThrow(() -> new ApiException(
+                        ApiErrorCode.LOCKER_COMPARTMENT_NOT_FOUND,
+                        id
                 ));
     }
 
     private Reservation findReservationOrThrow(Long id) {
         return reservationRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Reserva no encontrada con id: " + id
+                .orElseThrow(() -> new ApiException(
+                        ApiErrorCode.RESERVATION_NOT_FOUND,
+                        id
                 ));
     }
 
     private void validateLockerCompartmentIsAvailable(LockerCompartment lockerCompartment) {
         if (lockerCompartment.getStatus() != LockerCompartmentStatus.AVAILABLE) {
-            throw new ConflictException(
-                    "El compartimento no está disponible para reservar"
+            throw new ApiException(
+                    ApiErrorCode.LOCKER_COMPARTMENT_NOT_AVAILABLE
             );
         }
     }
@@ -135,16 +137,16 @@ public class ReservationService {
                 );
 
         if (hasActiveReservation) {
-            throw new ConflictException(
-                    "El compartimento ya tiene una reserva activa"
+            throw new ApiException(
+                    ApiErrorCode.LOCKER_COMPARTMENT_ACTIVE_RESERVATION
             );
         }
     }
 
     private void validateReservationCanBeCancelled(Reservation reservation) {
         if (reservation.getStatus() != ReservationStatus.CONFIRMED) {
-            throw new ConflictException(
-                    "La reserva no se puede cancelar porque no está activa"
+            throw new ApiException(
+                    ApiErrorCode.RESERVATION_CANNOT_BE_CANCELLED
             );
         }
     }

@@ -16,6 +16,12 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    private final ServiceCodeMessageResolver serviceCodeMessageResolver;
+
+    public GlobalExceptionHandler(ServiceCodeMessageResolver serviceCodeMessageResolver) {
+        this.serviceCodeMessageResolver = serviceCodeMessageResolver;
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiErrorResponse> handleValidationErrors(
             MethodArgumentNotValidException exception,
@@ -34,7 +40,8 @@ public class GlobalExceptionHandler {
         ApiErrorResponse response = new ApiErrorResponse(
                 HttpStatus.BAD_REQUEST.value(),
                 HttpStatus.BAD_REQUEST.getReasonPhrase(),
-                "La validación de la petición ha fallado",
+                ApiErrorCode.VALIDATION_ERROR.getCode(),
+                serviceCodeMessageResolver.resolve(ApiErrorCode.VALIDATION_ERROR.getCode()),
                 request.getRequestURI(),
                 fieldErrors
         );
@@ -44,57 +51,25 @@ public class GlobalExceptionHandler {
                 .body(response);
     }
 
-    @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<ApiErrorResponse> handleResourceNotFound(
-            ResourceNotFoundException exception,
+    @ExceptionHandler(ApiException.class)
+    public ResponseEntity<ApiErrorResponse> handleApiException(
+            ApiException exception,
             HttpServletRequest request) {
 
+        ApiErrorCode errorCode = exception.getErrorCode();
+        HttpStatus status = errorCode.getStatus();
+
         ApiErrorResponse response = new ApiErrorResponse(
-                HttpStatus.NOT_FOUND.value(),
-                HttpStatus.NOT_FOUND.getReasonPhrase(),
-                exception.getMessage(),
+                status.value(),
+                status.getReasonPhrase(),
+                errorCode.getCode(),
+                serviceCodeMessageResolver.resolve(errorCode.getCode(), exception.getArgs()),
                 request.getRequestURI(),
                 Map.<String, List<String>>of()
         );
 
         return ResponseEntity
-                .status(HttpStatus.NOT_FOUND)
-                .body(response);
-    }
-
-    @ExceptionHandler(DuplicateResourceException.class)
-    public ResponseEntity<ApiErrorResponse> handleDuplicateResource(
-            DuplicateResourceException exception,
-            HttpServletRequest request) {
-
-        ApiErrorResponse response = new ApiErrorResponse(
-                HttpStatus.CONFLICT.value(),
-                HttpStatus.CONFLICT.getReasonPhrase(),
-                exception.getMessage(),
-                request.getRequestURI(),
-                Map.<String, List<String>>of()
-        );
-
-        return ResponseEntity
-                .status(HttpStatus.CONFLICT)
-                .body(response);
-    }
-
-    @ExceptionHandler(ConflictException.class)
-    public ResponseEntity<ApiErrorResponse> handleConflict(
-            ConflictException exception,
-            HttpServletRequest request) {
-
-        ApiErrorResponse response = new ApiErrorResponse(
-                HttpStatus.CONFLICT.value(),
-                HttpStatus.CONFLICT.getReasonPhrase(),
-                exception.getMessage(),
-                request.getRequestURI(),
-                Map.<String, List<String>>of()
-        );
-
-        return ResponseEntity
-                .status(HttpStatus.CONFLICT)
+                .status(status)
                 .body(response);
     }
 
@@ -106,7 +81,8 @@ public class GlobalExceptionHandler {
         ApiErrorResponse response = new ApiErrorResponse(
                 HttpStatus.BAD_REQUEST.value(),
                 HttpStatus.BAD_REQUEST.getReasonPhrase(),
-                "El cuerpo de la petición no es válido",
+                ApiErrorCode.INVALID_REQUEST_BODY.getCode(),
+                serviceCodeMessageResolver.resolve(ApiErrorCode.INVALID_REQUEST_BODY.getCode()),
                 request.getRequestURI(),
                 Map.<String, List<String>>of(
                         "requestBody",
