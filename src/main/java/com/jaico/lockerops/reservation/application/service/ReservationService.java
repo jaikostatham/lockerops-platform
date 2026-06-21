@@ -11,6 +11,8 @@ import com.jaico.lockerops.reservation.domain.model.Reservation;
 import com.jaico.lockerops.reservation.domain.enums.ReservationStatus;
 import com.jaico.lockerops.compartment.infrastructure.persistence.repository.LockerCompartmentRepository;
 import com.jaico.lockerops.reservation.infrastructure.persistence.repository.ReservationRepository;
+import com.jaico.lockerops.ticket.api.dto.response.ReservationTicketResponse;
+import com.jaico.lockerops.ticket.application.service.TicketService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,19 +31,22 @@ public class ReservationService {
     private final ReservationRepository reservationRepository;
     private final LockerCompartmentRepository lockerCompartmentRepository;
     private final ReservationMapper reservationMapper;
+    private final TicketService ticketService;
 
     public ReservationService(
             ReservationRepository reservationRepository,
             LockerCompartmentRepository lockerCompartmentRepository,
-            ReservationMapper reservationMapper
+            ReservationMapper reservationMapper,
+            TicketService ticketService
     ) {
         this.reservationRepository = reservationRepository;
         this.lockerCompartmentRepository = lockerCompartmentRepository;
         this.reservationMapper = reservationMapper;
+        this.ticketService = ticketService;
     }
 
     @Transactional
-    public ReservationResponse createReservation(CreateReservationRequest request) {
+    public ReservationTicketResponse createReservation(CreateReservationRequest request) {
         LockerCompartment lockerCompartment = findLockerCompartmentOrThrow(
                 request.getLockerCompartmentId()
         );
@@ -69,7 +74,7 @@ public class ReservationService {
 
         Reservation savedReservation = reservationRepository.save(reservation);
 
-        return reservationMapper.toResponse(savedReservation);
+        return ticketService.issueTicketForReservation(savedReservation);
     }
 
     @Transactional(readOnly = true)
@@ -99,6 +104,7 @@ public class ReservationService {
 
         LockerCompartment lockerCompartment = reservation.getLockerCompartment();
         lockerCompartment.setStatus(LockerCompartmentStatus.AVAILABLE);
+        ticketService.cancelTicketForReservation(reservation, now);
 
         Reservation cancelledReservation = reservationRepository.save(reservation);
 
