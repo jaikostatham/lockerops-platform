@@ -9,12 +9,14 @@ build/
 !**/src/test/**/build/
 
 # Local Spring Boot configuration
-src/main/resources/application.properties
+src/main/resources/application-local.yml
+src/main/resources/application-local.yaml
 src/main/resources/application-local.properties
 
 # Environment / secrets
 .env
 .env.*
+!.env.example
 *.pem
 *.key
 *.p12
