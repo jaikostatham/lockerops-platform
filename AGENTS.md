@@ -30,7 +30,8 @@ Backend REST de lockers con Java 21, Spring Boot 3.5.14, Gradle, JPA, PostgreSQL
 
 - Base habitual: `develop`; no trabajar directo en `main`.
 - Ramas desde `develop` actualizado: `feature/...`, `fix/...`, `docs/...`.
-- Codex propone nombres, stage, commits, merges y pushes; el usuario valida.
+- Para stage/commit/push/merge, Codex hace una unica propuesta completa; si el usuario aprueba, ejecuta todo el bloque aprobado.
+- La propuesta debe incluir rama, archivos, mensaje de commit, destino remoto y riesgos.
 - No hacer `commit`, `merge`, `rebase`, `push`, `pull` con cambios, borrar ramas ni resolver conflictos sin permiso explicito.
 - Antes de rama/commit/push/merge: comprobar rama actual, estado local y remoto.
 - No usar `git add .`; proponer archivos concretos. Si hay cambios ajenos, avisar y no tocarlos.

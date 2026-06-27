@@ -62,7 +62,7 @@ Checklist para revisar cambios hechos por humanos o por Codex antes de aceptar, 
 - Proponer stage selectivo.
 - Proponer mensaje de commit.
 - Antes de push o merge, comprobar remoto.
-- El usuario revisa antes de commit, push o merge.
+- El usuario revisa una propuesta agrupada antes de commit, push o merge.
 
 ## Entrega
 

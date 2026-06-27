@@ -110,3 +110,5 @@ Antes de proponer la operacion:
 - Proponer archivos concretos para stage.
 - Proponer mensaje de commit si aplica.
 - Esperar revision del usuario.
+
+La confirmacion debe pedirse una sola vez para el bloque completo. Si el usuario aprueba stage + commit + push, Codex ejecuta esos pasos sin pedir nuevos OK intermedios.

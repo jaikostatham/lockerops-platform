@@ -62,10 +62,21 @@ Flujo normal:
 7. Ejecutar verificacion acordada.
 8. Mostrar resumen y archivos modificados.
 9. Esperar revision del usuario.
-10. Proponer commit, sin ejecutarlo hasta recibir OK.
-11. Antes de push o merge, volver a comprobar remoto.
+10. Proponer una unica accion agrupada para stage, commit y push si procede.
+11. Si el usuario aprueba, ejecutar todo el bloque aprobado sin pedir confirmaciones intermedias.
+12. Antes de push o merge, volver a comprobar remoto.
 
 Codex no debe hacer `git add .`. Debe proponer archivos concretos.
+
+La propuesta agrupada debe incluir:
+
+- Rama actual.
+- Archivos a stagear.
+- Mensaje de commit.
+- Destino remoto si hay push.
+- Base/destino si hay merge o PR.
+- Verificaciones realizadas.
+- Riesgos o advertencias.
 
 ## Verificacion
 
