@@ -27,7 +27,6 @@ logs/
 *.log
 
 # Local documentation / study files
-README.md
 ESTUDIO_LOCKEROPS_PLATFORM.md
 
 ### STS ###
