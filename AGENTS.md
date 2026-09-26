@@ -7,7 +7,8 @@ Backend REST de lockers con Java 21, Spring Boot 3.5.14, Gradle, JPA, PostgreSQL
 - `.\gradlew.bat bootRun` - local.
 - `.\gradlew.bat test` - tests.
 - `.\gradlew.bat build` - verificacion completa.
-- No hay lint, formatter, Docker, Flyway ni Liquibase.
+- Flyway gestiona las migraciones SQL; Hibernate valida el esquema al arrancar.
+- No hay lint ni formatter configurados.
 
 ## Codigo y arquitectura
 
