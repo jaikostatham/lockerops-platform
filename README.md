@@ -82,10 +82,12 @@ GitHub Actions ejecuta `./gradlew build --no-daemon`.
 
 ## Flujo de cambios
 
-Trabaja en una rama `feature/...`, `fix/...` o `docs/...` creada desde `develop`;
-abre un Pull Request a `develop` y revisa CI antes de integrar. Después valida en
-Testing. La promoción a Producción se hace en un Pull Request separado de
-`develop` a `main`.
+Trabaja en una rama semántica (`feature/...`, `fix/...` o `docs/...`) creada desde
+`develop` actualizado y abre un Pull Request a `develop`. El responsable del
+repositorio revisa y hace el merge manual; después se valida el cambio en
+Testing. Producción se actualiza solo cuando se decide hacer un release: se
+agrupan los cambios aprobados y se abre una única PR de `develop` a `main` por
+repositorio. Los cambios pequeños no se promocionan automáticamente a Producción.
 
 Render aloja los servicios y gestiona sus despliegues. Consulta
 [`docs/deployment-pipeline.md`](docs/deployment-pipeline.md) y
