@@ -3,11 +3,6 @@ spring:
     url: jdbc:postgresql://${DB_HOST}:${DB_PORT:5432}/${DB_NAME_TESTING}?sslmode=${DB_SSLMODE:require}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
-
-  flyway:
-    user: ${DB_MIGRATION_USERNAME}
-    password: ${DB_MIGRATION_PASSWORD}
-
 springdoc:
   api-docs:
     enabled: false

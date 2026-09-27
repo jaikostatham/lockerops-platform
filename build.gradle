@@ -35,3 +35,11 @@ dependencies {
 tasks.named('test') {
 	useJUnitPlatform()
 }
+
+tasks.register('flywayMigrate', JavaExec) {
+	group = 'database'
+	description = 'Applies pending database migrations using DB_MIGRATION_* environment variables.'
+	dependsOn(tasks.named('classes'))
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'com.jaico.lockerops.migration.FlywayMigrationRunner'
+}
