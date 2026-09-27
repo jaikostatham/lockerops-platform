@@ -1,59 +1,36 @@
 # Flujo de cambios y despliegues
 
-## Modelo acordado
+## Mapa de entornos
 
-| Entorno | Código | Direcciones previstas | Base PostgreSQL |
-| --- | --- | --- | --- |
-| Local | Rama de trabajo en el equipo | Frontend `localhost:9000`; API `localhost:8080` | `lockerops_test` |
-| Testing | Código integrado en `develop` | URL pendiente de configurar | `lockerops_test` |
-| Portfolio | Código integrado en `main` después de validar testing | URL pendiente de configurar | `lockerops_prod` |
+| Entorno | Rama | Kiosco | API | Base PostgreSQL |
+| --- | --- | --- | --- | --- |
+| Local | Rama de trabajo | `http://localhost:9000` | `http://localhost:8080` | PostgreSQL local `localhost:5432/lockerops_test` por defecto |
+| Testing | `develop` | [lockerops-kiosk-frontend-test](https://lockerops-kiosk-frontend-test.onrender.com/stations) | [lockerops-platform-test](https://lockerops-platform-test.onrender.com) | Neon `lockerops-test`, rama `testing`, base `lockerops_test` |
+| Producción | `main` | [lockerops-kiosk-frontend-prod](https://lockerops-kiosk-frontend-prod.onrender.com/stations) | [lockerops-platform-prod](https://lockerops-platform-prod.onrender.com) | Neon `lockerops-prod`, rama `production`, base `lockerops_prod` |
 
-Local y testing solo comparten los mismos datos si se conectan a la misma
-instancia PostgreSQL. Ahora existe la base local; todavía no hay una base
-remota de testing ni URLs públicas. La base `lockerops_prod` queda aislada
-para la última etapa.
+La instancia PostgreSQL local y la de Neon Testing tienen el mismo nombre de base, pero son servidores distintos. Verifica la configuración efectiva de IntelliJ antes de asumir que los cambios locales aparecen en Testing.
 
-## Cómo será el recorrido
+## Gitflow
 
-1. Trabajas en una rama local y abres un Pull Request hacia `develop`.
-2. GitHub Actions comprueba el backend y el frontend. Si pasa, integras el
-   Pull Request; entonces `develop` representa el código que se validará
-   en testing.
-3. Cuando la URL de testing esté configurada, pruebas allí la versión
-   integrada usando datos sintéticos.
-4. Si la validación termina bien, abres un Pull Request de `develop` a
-   `main`. Después de sus comprobaciones y revisión, integrar `main` será
-   la promoción a la URL de portfolio.
+1. Crea una rama semántica (`feature/...`, `fix/...` o `docs/...`) desde `develop` actualizado y mantén el cambio dentro del repositorio que corresponda.
+2. Abre un Pull Request de esa rama a `develop`. GitHub Actions ejecuta CI; revisa el diff y el resultado antes de integrar.
+3. Tras integrar, valida el servicio de Testing en Render: revisa el deploy y sus logs, consulta `GET /api/locker-stations` y comprueba `/stations` en el kiosco.
+4. Cuando Testing esté validado, abre un Pull Request separado de `develop` a `main`. La promoción también pasa por CI y revisión.
+5. El responsable del repositorio hace el merge manual. Render recibe los cambios de la rama conectada; comprueba el resultado en Deploys en vez de presuponer que comenzó o terminó correctamente.
+6. En Producción, confirma que la API queda Live, que Flyway termina sin errores y que el kiosco consume el catálogo esperado.
 
-## Qué funciona hoy
+## CI y despliegue
 
-- Cada repositorio tiene un workflow `ci.yml`: el backend ejecuta
-  `./gradlew build --no-daemon` y el frontend ejecuta `npm ci` y
-  `npm run build`.
-- Esos workflows comprueban cambios; **no despliegan** ni crean URLs.
-- No se ha elegido ni creado un servicio de alojamiento o una base remota.
-- No hay secretos de despliegue configurados en GitHub y no se ha generado
-  ningún coste.
+- GitHub Actions valida cambios; no publica las aplicaciones.
+- Los servicios de Render están conectados a las ramas de Testing y Producción. La ejecución de Producción del 27 de septiembre de 2026 se inició como `Auto-Deploy` después de integrar el PR de promoción y terminó Live.
+- Los backends ejecutan Flyway al arrancar. El despliegue de Producción del commit `9f525d9` validó las tres migraciones y terminó en el esquema v3.
+- Después de ese despliegue, `GET /api/locker-stations` devolvió tres estaciones y el kiosco público mostró el mismo catálogo.
+- Revisa en Render el estado, la rama, el commit, el trigger y los logs de cada servicio. Las opciones de despliegue pueden variar según la configuración del servicio.
 
-El despliegue automático de `develop` y `main` queda pendiente. No añadimos
-otro workflow de GitHub Actions hasta elegir el alojamiento y comprobar que
-ese método realmente necesita uno.
+## Configuración pública
 
-## Seguridad y coste
+Cada frontend apunta a la API de su entorno mediante `VITE_API_BASE_URL`; Testing apunta a la API de Testing y Producción a la API de Producción. En ambos sitios públicos `VITE_RESERVATION_FLOW_ENABLED=false` oculta el flujo de reservas. La API también impone lectura de catálogo, así que la variable del frontend no es el control de seguridad.
 
-La API no tiene autenticación. Las configuraciones `testing` y `prod`
-limitan la API pública al catálogo de estaciones y compartimentos y
-bloquean escrituras. Usa solo datos sintéticos en cualquier URL pública.
-El frontend público también debe compilarse con
-`VITE_RESERVATION_FLOW_ENABLED=false`; esa variable solo controla la
-interfaz y no sustituye la protección del backend.
+Los servicios públicos no requieren autenticación y solo contienen datos ficticios. No publiques claves, contraseñas, reservas reales ni códigos de acceso. Guarda secretos de backend en las variables de entorno de Render; las variables `VITE_*` son públicas una vez incluidas en el bundle.
 
-Antes de elegir un proveedor revisaremos sus límites gratuitos vigentes y
-si exige tarjeta. No se seleccionará un plan de pago ni se continuará con
-un alta que pueda generar cargos. Los límites gratuitos pueden suspender
-un servicio; no se prometerá disponibilidad ni uso ilimitado.
-
-Las credenciales se guardarán en el gestor de secretos del servicio, nunca
-en el repositorio, en `VITE_*` ni en una imagen Docker. Antes de conectar
-una base remota o aplicar una migración se revisarán la copia de seguridad
-y el efecto sobre los datos.
+La guía de roles, variables y migraciones está en [`postgresql-environments.md`](postgresql-environments.md).
