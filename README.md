@@ -4,7 +4,8 @@ API REST de demostración para gestionar estaciones de lockers, compartimentos,
 reservas y tickets. El proyecto asociado de interfaz es
 [LockerOps Kiosk](https://github.com/jaikostatham/lockerops-kiosk-frontend).
 
-La demo pública expone un catálogo sintético en modo de solo lectura.
+La demo pública usa datos ficticios y está limitada a la consulta del catálogo.
+No introduzcas datos personales ni credenciales reales.
 
 ## Tecnologías y arquitectura
 
@@ -31,17 +32,11 @@ esa demo.
 
 Requisitos: Java 21 y una instancia de PostgreSQL para desarrollo. Configura el
 perfil `local` y los valores `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME` y
-`DB_PASSWORD` en la configuración local del entorno. La API usa esas variables
-para conectarse a la base de datos y Hibernate valida el esquema al arrancar.
-
-Las migraciones versionadas se ejecutan por separado del arranque de la API. En
-una base local que necesite actualizar el esquema, ejecuta `flywayMigrate` con
-`DB_HOST`, `DB_NAME`, `DB_MIGRATION_USERNAME` y `DB_MIGRATION_PASSWORD`; el
-puerto y el modo SSL usan los valores `DB_PORT` y `DB_SSLMODE`.
+`DB_PASSWORD` en la configuración local de tu entorno. No guardes credenciales
+en el repositorio.
 
 ```powershell
 $env:SPRING_PROFILES_ACTIVE = 'local'
-.\gradlew.bat flywayMigrate
 .\gradlew.bat bootRun
 ```
 
@@ -57,12 +52,9 @@ Desde la carpeta del backend:
 .\gradlew.bat build
 ```
 
-En GitHub Actions, los cambios en PR y los pushes a `develop` o `main` ejecutan
-compilación y pruebas. La tarea `flywayMigrate` queda disponible para aplicar
-migraciones cuando una modificación del proyecto cambie el esquema.
-
 ## Datos y seguridad
 
-Los entornos compartidos usan datos sintéticos. Las credenciales se suministran
-mediante la configuración privada del entorno de ejecución. La configuración
-del frontend no sustituye las restricciones que aplica la API.
+Usa datos sintéticos en entornos compartidos. Mantén contraseñas y otros secretos
+en la configuración privada del entorno de ejecución; no los incluyas en el
+código, documentación, capturas ni historial de Git. La configuración del
+frontend no sustituye las restricciones que aplica la API.
