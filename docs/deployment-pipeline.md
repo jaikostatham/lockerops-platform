@@ -8,29 +8,41 @@
 | Testing | `develop` | [lockerops-kiosk-frontend-test](https://lockerops-kiosk-frontend-test.onrender.com/stations) | [lockerops-platform-test](https://lockerops-platform-test.onrender.com) | Neon `lockerops-test`, rama `testing`, base `lockerops_test` |
 | Producción | `main` | [lockerops-kiosk-frontend-prod](https://lockerops-kiosk-frontend-prod.onrender.com/stations) | [lockerops-platform-prod](https://lockerops-platform-prod.onrender.com) | Neon `lockerops-prod`, rama `production`, base `lockerops_prod` |
 
-La instancia PostgreSQL local y la de Neon Testing tienen el mismo nombre de base, pero son servidores distintos. Verifica la configuración efectiva de IntelliJ antes de asumir que los cambios locales aparecen en Testing.
+La base local `lockerops_test` y la de Neon Testing tienen el mismo nombre, pero
+son servidores distintos. IntelliJ puede sustituir `DB_HOST` y `DB_NAME`; comprueba
+la configuración efectiva antes de asumir que una operación local afecta a Testing.
 
-## Gitflow
+## Flujo Git
 
-1. Crea una rama semántica (`feature/...`, `fix/...` o `docs/...`) desde `develop` actualizado y mantén el cambio dentro del repositorio que corresponda.
-2. Abre un Pull Request de esa rama a `develop`. GitHub Actions ejecuta CI; revisa el diff y el resultado antes de integrar.
-3. Tras integrar, valida el servicio de Testing en Render: revisa el deploy y sus logs, consulta `GET /api/locker-stations` y comprueba `/stations` en el kiosco.
-4. Cuando Testing esté validado, abre un Pull Request separado de `develop` a `main`. La promoción también pasa por CI y revisión.
-5. El responsable del repositorio hace el merge manual. Render recibe los cambios de la rama conectada; comprueba el resultado en Deploys en vez de presuponer que comenzó o terminó correctamente.
-6. En Producción, confirma que la API queda Live, que Flyway termina sin errores y que el kiosco consume el catálogo esperado.
+1. Actualiza `develop` y crea una rama semántica (`feature/...`, `fix/...` o
+   `docs/...`) para un único tema, dentro del repositorio afectado.
+2. Abre una PR de esa rama a `develop`. Revisa el diff y los resultados de CI.
+3. El responsable del repositorio hace el merge manualmente. No se integran
+   cambios directamente en `develop`.
+4. Después del merge, valida Testing: comprueba el despliegue y sus logs en
+   Render, consulta `GET /api/locker-stations` y abre `/stations` en el kiosco.
+5. Producción se actualiza solo cuando se decide publicar un release. Se agrupan
+   los cambios aprobados y se abre una única PR de `develop` a `main` por
+   repositorio; no se promueve cada cambio pequeño.
+6. El responsable hace el merge manual de la PR de promoción. Después, comprueba
+   en Render el servicio, el commit y los logs de Producción.
 
 ## CI y despliegue
 
-- GitHub Actions valida cambios; no publica las aplicaciones.
-- Los servicios de Render están conectados a las ramas de Testing y Producción. La ejecución de Producción del 27 de septiembre de 2026 se inició como `Auto-Deploy` después de integrar el PR de promoción y terminó Live.
-- Los backends ejecutan Flyway al arrancar. El despliegue de Producción del commit `9f525d9` validó las tres migraciones y terminó en el esquema v3.
-- Después de ese despliegue, `GET /api/locker-stations` devolvió tres estaciones y el kiosco público mostró el mismo catálogo.
-- Revisa en Render el estado, la rama, el commit, el trigger y los logs de cada servicio. Las opciones de despliegue pueden variar según la configuración del servicio.
+- El workflow del backend ejecuta `./gradlew build --no-daemon` en pushes a
+  `develop` y `main`, y en PRs dirigidas a esas ramas. El build incluye las
+  comprobaciones automatizadas del proyecto.
+- GitHub Actions valida el código; no publica las aplicaciones. Render aloja
+  los servicios conectados a las ramas de Testing y Producción. Revisa la página
+  Deploys para confirmar el resultado de cada despliegue.
+- El backend incluye `GET /healthz`, que confirma que la aplicación responde.
+  La ruta no verifica la conexión con PostgreSQL.
+- Los perfiles remotos limitan la API al catálogo público y bloquean escrituras.
+  El frontend público usa `VITE_RESERVATION_FLOW_ENABLED=false`; esa opción solo
+  oculta la interfaz y no reemplaza las restricciones del backend.
+- La guía de roles, variables y migraciones está en
+  [`postgresql-environments.md`](postgresql-environments.md).
 
-## Configuración pública
-
-Cada frontend apunta a la API de su entorno mediante `VITE_API_BASE_URL`; Testing apunta a la API de Testing y Producción a la API de Producción. En ambos sitios públicos `VITE_RESERVATION_FLOW_ENABLED=false` oculta el flujo de reservas. La API también impone lectura de catálogo, así que la variable del frontend no es el control de seguridad.
-
-Los servicios públicos no requieren autenticación y solo contienen datos ficticios. No publiques claves, contraseñas, reservas reales ni códigos de acceso. Guarda secretos de backend en las variables de entorno de Render; las variables `VITE_*` son públicas una vez incluidas en el bundle.
-
-La guía de roles, variables y migraciones está en [`postgresql-environments.md`](postgresql-environments.md).
+No publiques claves, contraseñas, reservas reales ni códigos de acceso. Guarda
+los secretos del backend en el gestor de variables del servicio; las variables
+`VITE_*` quedan expuestas en el bundle público del frontend.
