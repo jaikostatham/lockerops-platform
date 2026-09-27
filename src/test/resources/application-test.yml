@@ -1,0 +1,28 @@
+spring:
+  flyway:
+    enabled: false
+
+  datasource:
+    url: jdbc:h2:mem:lockerops_test;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
+  jpa:
+    open-in-view: false
+    show-sql: false
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        format_sql: false
+
+server:
+  error:
+    include-message: never
+    include-stacktrace: never
+
+lockerops:
+  reservations:
+    expiration:
+      enabled: false
