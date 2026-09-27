@@ -47,6 +47,19 @@ La API se conecta como `lockerops_runtime`. En Testing y Producción se comprob�
 
 Flyway recibe credenciales separadas mediante `DB_MIGRATION_USERNAME` y `DB_MIGRATION_PASSWORD`. El usuario de migración actual tiene más privilegios que el runtime y esas credenciales se conservan como secretos en Render. El proceso de la API las necesita durante el arranque porque Flyway migra el esquema en esa fase. Antes de manejar datos reales, evalúa un usuario de migración dedicado o un proceso separado.
 
+## Auditoría de roles
+
+Las comprobaciones de permisos compartidas el 27 de septiembre de 2026 confirman que `lockerops_runtime` puede conectarse y usar `public`, y tiene `SELECT` en `locker_stations` y `locker_compartments`. No tiene `SELECT` en `reservations`, `tickets` ni `access_codes`. Sus atributos `SUPERUSER`, `CREATEDB`, `CREATEROLE`, `REPLICATION` y `BYPASSRLS` están desactivados; tampoco pertenece a `neon_superuser`.
+
+La misma auditoría de Producción mostró que el rol `lockerops_app` conserva `CREATEDB`, `CREATEROLE`, `REPLICATION` y `BYPASSRLS`, aunque `SUPERUSER` está desactivado. También mostró acceso de lectura a `reservations` y pertenencia a `neon_superuser`. Esos permisos exceden lo que necesita la API pública. Antes de deshabilitar o retirar este rol, comprueba que ningún servicio o proceso siga usándolo.
+
+Las dos parejas de variables corresponden a tareas distintas:
+
+- `DB_USERNAME=lockerops_runtime` y `DB_PASSWORD`: conexión de la API con permisos de lectura del catálogo.
+- `DB_MIGRATION_USERNAME=neondb_owner` y `DB_MIGRATION_PASSWORD`: conexión de Flyway para aplicar migraciones al iniciar el backend.
+
+`lockerops_app` es un rol existente detectado en Producción, no una tercera pareja que deba configurar la API. Mantén sus credenciales fuera de `DB_USERNAME` y no las revoques hasta verificar sus dependencias.
+
 No incluyas usuarios o contraseñas reales en comandos, scripts, GitHub, capturas ni archivos de configuración versionados. CORS limita llamadas desde navegadores; no autentica solicitudes directas.
 
 ## Flyway, datos y copias
