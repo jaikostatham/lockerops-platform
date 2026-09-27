@@ -43,8 +43,8 @@ Checklist para revisar cambios hechos por humanos o por Codex antes de aceptar, 
 
 - Revisar cualquier cambio en entidades JPA.
 - Revisar relaciones, constraints, indexes y nombres de columnas.
-- Recordar que no hay Flyway/Liquibase.
-- No asumir que `ddl-auto=update` resuelve cambios de datos.
+- Revisar las migraciones Flyway en `src/main/resources/db/migration` y añadir una nueva migracion versionada si cambia el esquema.
+- Hibernate usa `ddl-auto=validate`; no asumir que actualiza el esquema o migra datos.
 - Tests usan H2, pero runtime usa PostgreSQL.
 
 ## Tests
@@ -61,8 +61,10 @@ Checklist para revisar cambios hechos por humanos o por Codex antes de aceptar, 
 - Confirmar que no hay cambios ajenos mezclados.
 - Proponer stage selectivo.
 - Proponer mensaje de commit.
-- Antes de push o merge, comprobar remoto.
-- El usuario revisa una propuesta agrupada antes de commit, push o merge.
+- Crear una rama semantica por tema desde `develop` actualizado y dirigir las PR de trabajo a `develop`.
+- Antes de push o abrir una PR, comprobar el estado remoto.
+- El usuario autoriza el bloque de stage/commit/push/PR, revisa las PR y hace todos los merges manualmente.
+- No promover `develop` a `main` salvo orden expresa del usuario.
 
 ## Entrega
 

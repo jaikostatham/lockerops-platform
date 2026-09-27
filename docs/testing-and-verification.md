@@ -10,7 +10,11 @@ Definir que debe comprobar Codex antes de entregar cambios en LockerOps Platform
 - `.\gradlew.bat test` - ejecuta tests automatizados.
 - `.\gradlew.bat build` - compila y ejecuta verificacion Gradle completa.
 
-No hay comandos configurados para lint, formatter, coverage, Docker, Flyway o Liquibase.
+No hay tareas Gradle configuradas para lint, formatter o coverage, ni un plugin
+Gradle independiente para Flyway/Liquibase. Flyway si esta integrado con Spring
+Boot y ejecuta las migraciones versionadas al iniciar la aplicacion. La imagen de
+contenedor se define en `Dockerfile`; el despliegue y su flujo estan descritos en
+`docs/deployment-pipeline.md`.
 
 ## Entorno de tests
 
@@ -19,11 +23,16 @@ No hay comandos configurados para lint, formatter, coverage, Docker, Flyway o Li
 - MockMvc para endpoints HTTP.
 - Perfil `test`.
 - H2 en memoria con modo PostgreSQL.
+- Flyway desactivado en este perfil de tests.
 - Configuracion en `src/test/resources/application-test.yml`.
 
 ## Tests actuales relevantes
 
 - `LockerOpsPlatformApplicationTests` - carga de contexto.
+- `ApiContractIntegrationTests` - contrato HTTP de la API.
+- `TestingProfileApiIntegrationTests` - comportamiento del perfil publico de Testing.
+- `ReadOnlyApiFilterTests` - restricciones de lectura y catalogo publico.
+- `HealthControllerTest` - endpoint de salud.
 - `TicketAccessCodesIntegrationTests` - emision y validacion de tickets/access codes.
 - `ReservationExpirationIntegrationTests` - expiracion de reservas y efectos asociados.
 
@@ -84,8 +93,8 @@ Comprobar:
 Precauciones:
 
 - Revisar entidades, relaciones, constraints e indexes.
-- Recordar que no hay Flyway/Liquibase.
-- No asumir que `ddl-auto=update` migra datos correctamente.
+- Crear una migracion Flyway versionada en `src/main/resources/db/migration` cuando cambie el esquema.
+- No asumir que Hibernate o `ddl-auto=validate` migra datos o cambia el esquema.
 - Verificar compatibilidad PostgreSQL aunque tests usen H2.
 
 ## Antes de cerrar una tarea
@@ -98,9 +107,9 @@ Codex debe informar:
 - Riesgo residual.
 - Archivos principales afectados.
 
-## Antes de commit, push o merge
+## Antes de commit, push o abrir una PR
 
-Requiere permiso explicito del usuario.
+Requiere autorizacion explicita del usuario para el bloque de publicacion.
 
 Antes de proponer la operacion:
 
@@ -108,7 +117,14 @@ Antes de proponer la operacion:
 - Confirmar estado local.
 - Comprobar remoto si la operacion puede afectar a otros.
 - Proponer archivos concretos para stage.
-- Proponer mensaje de commit si aplica.
-- Esperar revision del usuario.
+- Proponer mensaje de commit si aplica y la rama destino de la PR.
 
-La confirmacion debe pedirse una sola vez para el bloque completo. Si el usuario aprueba stage + commit + push, Codex ejecuta esos pasos sin pedir nuevos OK intermedios.
+La autorizacion se solicita una sola vez para el bloque completo. Si el usuario
+autoriza stage + commit + push + PR, Codex ejecuta esos pasos sin pedir nuevos OK
+intermedios.
+
+## Merge y promocion a produccion
+
+- El usuario revisa y hace manualmente todos los merges de PR; Codex no mergea.
+- Las PR de trabajo se dirigen a `develop`.
+- La promocion de `develop` a `main` solo se prepara cuando el usuario la ordena expresamente.

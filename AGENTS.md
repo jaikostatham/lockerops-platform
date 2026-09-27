@@ -30,11 +30,13 @@ Backend REST de lockers con Java 21, Spring Boot 3.5.14, Gradle, JPA, PostgreSQL
 ## Git Flow y permisos
 
 - Base habitual: `develop`; no trabajar directo en `main`.
-- Ramas desde `develop` actualizado: `feature/...`, `fix/...`, `docs/...`.
-- Para stage/commit/push/merge, Codex hace una unica propuesta completa; si el usuario aprueba, ejecuta todo el bloque aprobado.
-- La propuesta debe incluir rama, archivos, mensaje de commit, destino remoto y riesgos.
-- No hacer `commit`, `merge`, `rebase`, `push`, `pull` con cambios, borrar ramas ni resolver conflictos sin permiso explicito.
-- Antes de rama/commit/push/merge: comprobar rama actual, estado local y remoto.
+- Crear una rama semantica por tema desde `develop` actualizado: `feature/...`, `fix/...`, `docs/...`.
+- Las PR de trabajo se dirigen a `develop`. El usuario revisa y hace todos los merges manualmente; Codex no mergea PRs.
+- No promover `develop` a `main` ni abrir PRs de promocion a `main` salvo orden explicita del usuario.
+- Para stage/commit/push/abrir PR, Codex hace una unica propuesta completa; si el usuario lo autoriza, ejecuta todo el bloque aprobado.
+- La propuesta debe incluir rama, archivos, mensaje de commit, rama destino de la PR y riesgos.
+- No hacer `commit`, `rebase`, `push`, `pull` con cambios, borrar ramas ni resolver conflictos sin permiso explicito. Codex no mergea PRs.
+- Antes de crear rama, commit, push o PR: comprobar rama actual, estado local y remoto.
 - No usar `git add .`; proponer archivos concretos. Si hay cambios ajenos, avisar y no tocarlos.
 
 ## Verificacion

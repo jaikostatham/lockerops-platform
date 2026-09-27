@@ -11,13 +11,17 @@ El objetivo actual es mantener un backend claro, verificable y preparado para qu
 - Proyecto backend monolitico en Java 21 y Spring Boot 3.5.14.
 - Arquitectura por vertical slices: `station`, `compartment`, `reservation`, `ticket`.
 - Persistencia con Spring Data JPA e Hibernate.
-- PostgreSQL para ejecucion local/runtime.
-- H2 para tests.
+- PostgreSQL para ejecucion local y en los servicios desplegados; H2 en memoria para tests.
+- Flyway gestiona las migraciones SQL versionadas en `src/main/resources/db/migration`; Hibernate valida el esquema con `ddl-auto=validate`.
 - OpenAPI/Swagger mediante springdoc-openapi.
 - Manejo centralizado de errores con codigos numericos propios.
 - No hay frontend dentro de este repositorio.
-- No hay migraciones con Flyway/Liquibase todavia.
 - No hay lint/formatter formal configurado.
+
+Los perfiles desplegados `testing` y `prod` mantienen la API en solo lectura y
+publican unicamente el catalogo de estaciones y compartimentos. Consulta
+`docs/deployment-pipeline.md` y `docs/postgresql-environments.md` antes de cambiar
+el comportamiento de un entorno o sus permisos de base de datos.
 
 ## Fuentes de verdad
 
@@ -43,10 +47,12 @@ Cuando haya dudas, priorizar en este orden:
 ## Git Flow del proyecto
 
 - Se trabaja desde `develop`.
-- Las ramas salen de `develop`.
+- Cada tema tiene su propia rama semantica creada desde `develop` actualizado.
+- Las PR de trabajo se dirigen a `develop`.
+- El usuario revisa y hace los merges manualmente; Codex no mergea PRs.
+- La promocion de `develop` a `main` se hace solo cuando el usuario la ordena expresamente.
 - No se trabaja directamente en `main`.
-- Cada feature o bloque de documentacion tiene su propia rama.
-- Los commits, merges, pushes y nombres definitivos se validan con el usuario.
+- Los commits y pushes se realizan dentro del bloque autorizado por el usuario.
 - Antes de subir o mergear, comprobar si hay cambios remotos pendientes.
 
 ## Politica de contexto
@@ -66,5 +72,4 @@ Para ahorrar tokens:
 - Automatizaciones.
 - Comandos personalizados avanzados.
 - Integraciones externas.
-- Migraciones de base de datos.
 - Frontend externo.
