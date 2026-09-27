@@ -1,60 +1,35 @@
 # LockerOps Platform
 
-API REST de demostración para gestionar estaciones de lockers, compartimentos,
-reservas y tickets. El proyecto asociado de interfaz es
-[LockerOps Kiosk](https://github.com/jaikostatham/lockerops-kiosk-frontend).
+API REST de demostración para estaciones de lockers, compartimentos,
+reservas y tickets. El proyecto incluye un [kiosco asociado](https://github.com/jaikostatham/lockerops-kiosk-frontend).
 
-La demo pública usa datos ficticios y está limitada a la consulta del catálogo.
-No introduzcas datos personales ni credenciales reales.
+La instancia pública ofrece un catálogo ficticio de estaciones y compartimentos.
+Los perfiles desplegados limitan la API a ese catálogo; los flujos de reservas,
+tickets y códigos de acceso forman parte de la aplicación y se ejercitan en
+desarrollo y en las pruebas automatizadas.
 
-## Tecnologías y arquitectura
+## Tecnologías
 
-- Java 21, Spring Boot, Gradle, Spring Data JPA, Flyway y PostgreSQL.
-- H2 para pruebas automatizadas.
-- OpenAPI para explorar el contrato durante el desarrollo local.
-- Organización por funcionalidades: `station`, `compartment`, `reservation` y `ticket`.
+Java 21 · Spring Boot 3 · Gradle · Spring Data JPA · Hibernate · Flyway ·
+PostgreSQL · H2 para pruebas
+
+## Arquitectura
 
 ```mermaid
 flowchart LR
-  K[Kiosk Vue] -->|HTTP /api| C[Spring MVC controllers]
-  C --> S[Application services]
-  S --> R[Spring Data repositories]
+  K[Kiosco Vue] -->|HTTP /api| C[Spring MVC]
+  C --> S[Servicios de aplicación]
+  S --> R[Repositorios Spring Data]
   R --> J[JPA / Hibernate]
   J --> P[(PostgreSQL)]
 ```
 
-El contrato funcional está resumido en [`docs/api-contract.md`](docs/api-contract.md).
-La demo pública permite consultar estaciones y compartimentos; las operaciones
-de reserva y acceso forman parte del flujo de desarrollo y no se habilitan en
-esa demo.
+El código se organiza por funcionalidades: `station`, `compartment`,
+`reservation` y `ticket`. La aplicación también contiene el contrato común
+de errores y la configuración transversal.
 
-## Ejecutar en local
+## API
 
-Requisitos: Java 21 y una instancia de PostgreSQL para desarrollo. Configura el
-perfil `local` y los valores `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME` y
-`DB_PASSWORD` en la configuración local de tu entorno. No guardes credenciales
-en el repositorio.
-
-```powershell
-$env:SPRING_PROFILES_ACTIVE = 'local'
-.\gradlew.bat bootRun
-```
-
-La API escucha normalmente en `http://localhost:8080`. Durante el desarrollo,
-OpenAPI UI está disponible en `/swagger-ui/index.html`.
-
-## Verificación
-
-Desde la carpeta del backend:
-
-```powershell
-.\gradlew.bat test
-.\gradlew.bat build
-```
-
-## Datos y seguridad
-
-Usa datos sintéticos en entornos compartidos. Mantén contraseñas y otros secretos
-en la configuración privada del entorno de ejecución; no los incluyas en el
-código, documentación, capturas ni historial de Git. La configuración del
-frontend no sustituye las restricciones que aplica la API.
+El [contrato HTTP](docs/api-contract.md) recoge rutas, ejemplos de payloads y
+respuestas. La [vista de arquitectura](docs/architecture-overview.md) describe
+los módulos y los flujos principales.
