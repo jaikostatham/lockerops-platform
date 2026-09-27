@@ -1,10 +1,20 @@
-# Architecture Overview
+# Arquitectura
 
-## Estilo general
+LockerOps Platform es una API Spring Boot organizada por funcionalidades
+verticales, con capas de API, aplicación, dominio y persistencia dentro de cada
+funcionalidad.
 
-El proyecto usa vertical slice architecture con una separacion ligera por capas dentro de cada slice.
+## Módulos
 
-Estructura tipica:
+- `station`: estaciones de lockers.
+- `compartment`: compartimentos y su relación con las estaciones.
+- `reservation`: creación, consulta, cancelación y expiración de reservas.
+- `ticket`: emisión y consulta de tickets, emisión y validación de códigos de
+  acceso.
+- `shared.exception`: formato y tratamiento común de errores.
+- `config`: configuración transversal, incluida la descripción OpenAPI.
+
+La estructura de una funcionalidad sigue este esquema:
 
 ```text
 slice/
@@ -24,16 +34,7 @@ slice/
       repository/
 ```
 
-## Slices actuales
-
-- `station`: CRUD de estaciones de lockers.
-- `compartment`: CRUD de compartimentos y pertenencia a estaciones.
-- `reservation`: creacion, consulta, cancelacion y expiracion de reservas.
-- `ticket`: emision de tickets, access codes y validacion de acceso.
-- `shared.exception`: contrato comun de errores.
-- `config`: configuracion transversal como OpenAPI.
-
-## Flujo de capas
+## Flujo de una petición
 
 ```text
 HTTP request
@@ -47,75 +48,54 @@ HTTP request
   -> Response DTO
 ```
 
-Los controladores no deben acceder directamente a repositorios. La logica de negocio vive en servicios.
+Los controladores delegan las operaciones en servicios. Los servicios
+coordinan la lógica de negocio y el acceso a los repositorios; los mappers
+convierten entre modelos de dominio y DTOs.
 
-## Reglas de persistencia
+## Persistencia
 
-- Entidades JPA en `domain/model`.
-- Repositorios Spring Data en `infrastructure/persistence/repository`.
-- Relaciones con `FetchType.LAZY` cuando ya esta en el patron existente.
-- Identificadores internos con `Long`.
-- Estados persistidos como `EnumType.STRING`.
-- Timestamps con `Instant`.
-- Crear o cambiar relaciones JPA requiere analisis previo.
+Las entidades JPA están en `domain/model`, los repositorios Spring Data en
+`infrastructure/persistence/repository` y los estados de dominio se persisten
+como nombres de enum. Las relaciones declaradas entre entidades usan carga
+perezosa. PostgreSQL es la base de datos de ejecución y Flyway gestiona las
+migraciones versionadas; Hibernate valida el esquema existente.
 
-## Flujos criticos
+## Flujos de negocio
 
-### Crear reserva
+### Crear una reserva
 
-1. Validar que el compartimento existe.
-2. Validar que esta disponible.
-3. Validar que no tiene reserva activa.
-4. Crear reserva `CONFIRMED`.
-5. Cambiar compartimento a `RESERVED`.
-6. Emitir ticket.
-7. Emitir access code.
-8. Devolver respuesta orientada al kiosk.
+1. Se comprueba que el compartimento existe y está disponible.
+2. Se comprueba que no haya una reserva activa para ese compartimento.
+3. La reserva se crea en estado `CONFIRMED` y el compartimento pasa a
+   `RESERVED`.
+4. Se emite un ticket y un código de acceso.
+5. La respuesta incluye los datos de la reserva, el ticket y el código emitido.
 
-### Cancelar reserva
+### Cancelar una reserva
 
-1. Buscar reserva.
-2. Validar que puede cancelarse.
-3. Cambiar reserva a `CANCELLED`.
-4. Liberar compartimento.
-5. Cancelar ticket asociado.
-6. Revocar access codes activos.
+1. Se localiza la reserva y se comprueba que está en estado cancelable.
+2. La reserva pasa a `CANCELLED` y el compartimento a `AVAILABLE`.
+3. El ticket asociado se cancela y los códigos activos se revocan.
 
-### Expirar reserva
+### Expirar una reserva
 
-1. Buscar reservas `CONFIRMED` vencidas.
-2. Marcar reserva como `EXPIRED`.
-3. Liberar compartimento si estaba `RESERVED`.
-4. Expirar ticket asociado si estaba `ISSUED`.
-5. Expirar access codes activos.
-6. Mantener el proceso idempotente.
+1. El proceso de expiración localiza reservas `CONFIRMED` cuyo plazo terminó.
+2. La reserva pasa a `EXPIRED`; el compartimento reservado vuelve a
+   `AVAILABLE`.
+3. El ticket y los códigos de acceso asociados pasan a estado expirado.
+4. En los perfiles desplegados, el proceso de expiración está desactivado.
 
-### Validar access code
+### Validar un código de acceso
 
-1. Buscar ticket por `ticketCode`.
-2. Hashear `accessCode`.
-3. Buscar access code por ticket y hash.
-4. Validar estado del access code.
-5. Validar ventana temporal.
-6. Validar estado del ticket.
-7. Validar estado de la reserva.
-8. Registrar uso correcto.
+1. Se localiza el ticket y el código mediante el hash del valor recibido.
+2. Se comprueban el estado y la vigencia del código, el ticket y la reserva.
+3. Una validación correcta actualiza `firstUsedAt`, `lastUsedAt` y
+   `useCount`.
+4. La respuesta indica si se concede el acceso simulado y devuelve los datos
+   de la reserva y el compartimento.
 
 ## Errores
 
-El contrato de errores se centraliza en:
-
-- `ApiErrorCode`.
-- `ApiException`.
-- `ApiErrorResponse`.
-- `GlobalExceptionHandler`.
-- `service.code` en `application.yml`.
-
-No cambiar codigos numericos sin revisar compatibilidad.
-
-## Consideraciones de diseño
-
-- Mantener coherentes los estados de reserva, ticket, código de acceso y compartimento.
-- Persistir los códigos de acceso como hashes, no como texto claro.
-- Gestionar los cambios de esquema mediante migraciones versionadas.
-- Mantener la lógica de negocio en los servicios y verificar los contratos de API al modificarlos.
+Los errores HTTP comparten el DTO `ApiErrorResponse`. Los códigos numéricos se
+centralizan en `ApiErrorCode` y sus mensajes se configuran en `service.code`
+de `application.yml`.
