@@ -1,76 +1,78 @@
-# API Contract
+# Contrato de la API
 
-Este documento resume el contrato HTTP funcional de la aplicación. Los ejemplos
-usan datos ficticios. La demo pública se limita a consultar estaciones y
-compartimentos; el resto de operaciones se describe para el entorno de desarrollo.
+Este documento describe las rutas y los payloads de la API REST. Los valores
+de los ejemplos son sintéticos. Los perfiles desplegados exponen el catálogo
+público de estaciones y compartimentos; los demás flujos están disponibles en
+el entorno local de desarrollo.
 
-## Reglas
+## Modelo de error
 
-- Los nombres de rutas, campos y respuestas describen la interfaz funcional de la API.
-- Mantener `ApiErrorResponse` como formato comun de error.
-- Mantener `ApiErrorCode` y `service.code` sincronizados.
-- No exponer access codes persistidos ni hashes internos.
+Las respuestas de error usan `ApiErrorResponse`. El campo `fieldErrors`
+contiene una lista de mensajes por campo cuando hay errores de validación.
 
-## Locker Stations
+```json
+{
+  "timestamp": "2026-06-21T16:15:00",
+  "status": 409,
+  "error": "Conflict",
+  "code": 5103,
+  "message": "El código de acceso ha sido revocado",
+  "path": "/api/access-codes/validate",
+  "fieldErrors": {}
+}
+```
+
+Los códigos numéricos se definen en `ApiErrorCode`; los mensajes asociados
+están en la configuración `service.code`.
+
+## Estaciones de lockers
 
 Base path: `/api/locker-stations`
 
-- `GET /api/locker-stations` - lista estaciones.
-- `GET /api/locker-stations/{id}` - consulta una estacion.
-- `POST /api/locker-stations` - crea una estacion.
-- `PUT /api/locker-stations/{id}` - actualiza una estacion.
-- `DELETE /api/locker-stations/{id}` - elimina una estacion.
+- `GET /api/locker-stations` — lista estaciones.
+- `GET /api/locker-stations/{id}` — consulta una estación.
+- `POST /api/locker-stations` — crea una estación.
+- `PUT /api/locker-stations/{id}` — actualiza una estación.
+- `DELETE /api/locker-stations/{id}` — elimina una estación.
 
-DTOs principales:
+DTOs: `CreateLockerStationRequest`, `UpdateLockerStationRequest` y
+`LockerStationResponse`.
 
-- `CreateLockerStationRequest`
-- `UpdateLockerStationRequest`
-- `LockerStationResponse`
+Errores relevantes: `1000` validación; `1001` cuerpo de petición no válido;
+`2001` estación no encontrada.
 
-Errores relevantes:
+## Compartimentos
 
-- `1000` validation error.
-- `1001` invalid request body.
-- `2001` locker station not found.
+Base path: `/api`
 
-## Locker Compartments
+- `POST /api/locker-stations/{lockerStationId}/compartments` — crea un
+  compartimento en una estación.
+- `GET /api/locker-stations/{lockerStationId}/compartments` — lista los
+  compartimentos de una estación.
+- `GET /api/locker-compartments/{id}` — consulta un compartimento.
+- `PUT /api/locker-compartments/{id}` — actualiza un compartimento.
+- `DELETE /api/locker-compartments/{id}` — elimina un compartimento.
 
-Base path compartida: `/api`
+DTOs: `CreateLockerCompartmentRequest`, `UpdateLockerCompartmentRequest` y
+`LockerCompartmentResponse`.
 
-- `POST /api/locker-stations/{lockerStationId}/compartments` - crea compartimento en estacion.
-- `GET /api/locker-stations/{lockerStationId}/compartments` - lista compartimentos de una estacion.
-- `GET /api/locker-compartments/{id}` - consulta compartimento.
-- `PUT /api/locker-compartments/{id}` - actualiza compartimento.
-- `DELETE /api/locker-compartments/{id}` - elimina compartimento.
+Errores relevantes: `2001` estación no encontrada; `3001` compartimento no
+encontrado; `3002` número de compartimento duplicado en la misma estación.
 
-DTOs principales:
-
-- `CreateLockerCompartmentRequest`
-- `UpdateLockerCompartmentRequest`
-- `LockerCompartmentResponse`
-
-Errores relevantes:
-
-- `2001` locker station not found.
-- `3001` locker compartment not found.
-- `3002` duplicated compartment number in station.
-
-## Reservations
+## Reservas
 
 Base path: `/api/reservations`
 
-- `POST /api/reservations` - crea reserva y emite ticket + access code.
-- `GET /api/reservations` - lista reservas.
-- `GET /api/reservations/{id}` - consulta reserva.
-- `PATCH /api/reservations/{id}/cancel` - cancela reserva.
+- `POST /api/reservations` — crea una reserva confirmada y emite un ticket y
+  un código de acceso.
+- `GET /api/reservations` — lista reservas.
+- `GET /api/reservations/{id}` — consulta una reserva.
+- `PATCH /api/reservations/{id}/cancel` — cancela una reserva confirmada.
 
-DTOs principales:
+DTOs: `CreateReservationRequest`, `ReservationResponse` y
+`ReservationTicketResponse`.
 
-- `CreateReservationRequest`
-- `ReservationResponse`
-- `ReservationTicketResponse`
-
-Contrato critico de creacion:
+Ejemplo de petición:
 
 ```json
 {
@@ -80,40 +82,36 @@ Contrato critico de creacion:
 }
 ```
 
-La respuesta de creacion incluye datos de reserva, `ticketCode` y `accessCode`. El `accessCode` real solo debe exponerse al emitirlo.
+La respuesta de creación contiene los datos de la reserva, `ticketCode` y
+`accessCode`. La respuesta de emisión es el único momento en que se devuelve
+el valor completo del código de acceso; la persistencia guarda su hash y una
+vista parcial.
 
-Errores relevantes:
-
-- `3001` locker compartment not found.
-- `4001` reservation not found.
-- `4002` compartment not available.
-- `4003` compartment has active reservation.
-- `4004` reservation cannot be cancelled.
-- `5003` ticket already exists for reservation.
+Errores relevantes: `3001` compartimento no encontrado; `4001` reserva no
+encontrada; `4002` compartimento no disponible; `4003` compartimento con
+reserva activa; `4004` reserva no cancelable; `5003` ticket ya emitido para
+la reserva.
 
 ## Tickets
 
 Base path: `/api/tickets`
 
-- `GET /api/tickets/{id}` - consulta ticket por id interno.
-- `GET /api/tickets/code/{ticketCode}` - consulta ticket por codigo publico.
+- `GET /api/tickets/{id}` — consulta un ticket por identificador interno.
+- `GET /api/tickets/code/{ticketCode}` — consulta un ticket por código público.
 
-DTOs principales:
+DTO: `TicketResponse`.
 
-- `TicketResponse`
+Errores relevantes: `5001` ticket no encontrado por identificador; `5002`
+código de ticket no encontrado.
 
-Errores relevantes:
-
-- `5001` ticket not found.
-- `5002` ticket code not found.
-
-## Access Codes
+## Códigos de acceso
 
 Base path: `/api/access-codes`
 
-- `POST /api/access-codes/validate` - valida credenciales de acceso.
+- `POST /api/access-codes/validate` — valida un código para la simulación de
+  acceso del kiosco.
 
-Request actual:
+Petición:
 
 ```json
 {
@@ -122,7 +120,7 @@ Request actual:
 }
 ```
 
-Response correcto:
+Respuesta cuando se concede el acceso:
 
 ```json
 {
@@ -136,35 +134,11 @@ Response correcto:
 }
 ```
 
-Reglas criticas:
+La validación busca el código mediante su hash y registra la fecha y el número
+de usos correctos. Las credenciales no válidas producen el error `5106`;
+los códigos expirados, revocados o no activos devuelven `409` con un código
+específico.
 
-- Credenciales invalidas devuelven error generico `5106`.
-- Codigos revocados, expirados o no activos devuelven `409` con codigo especifico.
-- La validacion correcta incrementa `useCount`.
-- El access code se busca por hash, no por texto plano.
-
-Errores relevantes:
-
-- `5101` access code not found.
-- `5102` access code expired.
-- `5103` access code revoked.
-- `5104` access code not active.
-- `5105` reservation associated to code not active.
-- `5106` ticket or access code invalid.
-
-## Error Response
-
-Los errores API usan `ApiErrorResponse`:
-
-```json
-{
-  "status": 409,
-  "error": "Conflict",
-  "code": 5103,
-  "message": "El codigo de acceso ha sido revocado",
-  "path": "/api/access-codes/validate",
-  "fieldErrors": {}
-}
-```
-
-Campos exactos y constructor deben verificarse en `ApiErrorResponse` antes de cambiar el contrato.
+Errores relevantes: `5101` código no encontrado; `5102` código expirado;
+`5103` código revocado; `5104` código no activo; `5105` reserva asociada
+no activa; `5106` ticket o código de acceso no válido.
