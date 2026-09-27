@@ -1,14 +1,15 @@
 # API Contract
 
-Este documento resume el contrato HTTP actual. La fuente de verdad sigue siendo el codigo real, los tests y `request.http`.
+Este documento resume el contrato HTTP funcional de la aplicación. Los ejemplos
+usan datos ficticios. La demo pública se limita a consultar estaciones y
+compartimentos; el resto de operaciones se describe para el entorno de desarrollo.
 
 ## Reglas
 
-- No cambiar endpoints, requests o responses sin revisar controller, DTOs, tests, OpenAPI annotations y `request.http`.
+- Los nombres de rutas, campos y respuestas describen la interfaz funcional de la API.
 - Mantener `ApiErrorResponse` como formato comun de error.
 - Mantener `ApiErrorCode` y `service.code` sincronizados.
 - No exponer access codes persistidos ni hashes internos.
-- Si una documentacion antigua contradice este contrato, verificar contra codigo y tests.
 
 ## Locker Stations
 

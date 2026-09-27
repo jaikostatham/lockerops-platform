@@ -113,11 +113,9 @@ El contrato de errores se centraliza en:
 
 No cambiar codigos numericos sin revisar compatibilidad.
 
-## Riesgos para Codex
+## Consideraciones de diseño
 
-- Romper la coherencia entre estados de reserva, ticket, access code y compartimento.
-- Modificar DTOs sin actualizar tests y `request.http`.
-- Guardar access codes en claro.
-- Confiar en documentacion local obsoleta.
-- Cambiar entidades sin migracion.
-- Crear abstracciones hexagonales antes de que el repo las necesite.
+- Mantener coherentes los estados de reserva, ticket, código de acceso y compartimento.
+- Persistir los códigos de acceso como hashes, no como texto claro.
+- Gestionar los cambios de esquema mediante migraciones versionadas.
+- Mantener la lógica de negocio en los servicios y verificar los contratos de API al modificarlos.
