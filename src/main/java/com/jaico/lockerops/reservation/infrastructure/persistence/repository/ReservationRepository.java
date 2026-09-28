@@ -4,6 +4,11 @@ import com.jaico.lockerops.reservation.domain.model.Reservation;
 import com.jaico.lockerops.reservation.domain.enums.ReservationStatus;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import jakarta.persistence.LockModeType;
 
 import java.time.Instant;
 import java.util.Collection;
@@ -15,11 +20,23 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
 
     Optional<Reservation> findByReservationReference(UUID reservationReference);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select reservation from Reservation reservation where reservation.id = :id")
+    Optional<Reservation> findByIdForUpdate(@Param("id") Long id);
+
     List<Reservation> findByLockerCompartment_Id(Long lockerCompartmentId);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
     List<Reservation> findByStatusAndReservedUntilLessThanEqual(
             ReservationStatus status,
             Instant reservedUntil,
+            Pageable pageable
+    );
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    List<Reservation> findByStatusAndPaymentExpiresAtLessThanEqual(
+            ReservationStatus status,
+            Instant paymentExpiresAt,
             Pageable pageable
     );
 

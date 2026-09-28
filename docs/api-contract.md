@@ -63,11 +63,12 @@ encontrado; `3002` número de compartimento duplicado en la misma estación.
 
 Base path: `/api/reservations`
 
-- `POST /api/reservations` — crea una reserva confirmada y emite un ticket y
-  un código de acceso.
+- `POST /api/reservations` — crea una reserva pendiente de pago y bloquea
+  temporalmente el compartimento.
 - `GET /api/reservations` — lista reservas.
 - `GET /api/reservations/{id}` — consulta una reserva.
-- `PATCH /api/reservations/{id}/cancel` — cancela una reserva confirmada.
+- `PATCH /api/reservations/{id}/cancel` — cancela una reserva pendiente o
+  confirmada.
 
 DTOs: `CreateReservationRequest`, `ReservationResponse` y
 `ReservationTicketResponse`.
@@ -82,15 +83,44 @@ Ejemplo de petición:
 }
 ```
 
-La respuesta de creación contiene los datos de la reserva, `ticketCode` y
-`accessCode`. La respuesta de emisión es el único momento en que se devuelve
-el valor completo del código de acceso; la persistencia guarda su hash y una
-vista parcial.
+La respuesta de creación contiene el estado `PENDING_PAYMENT`, el precio en
+`amountMinor`, la moneda `currency` y `paymentExpiresAt`. El importe se expresa
+en la unidad menor de la moneda; por ejemplo, `400` representa 4,00 EUR. El
+servidor calcula el precio y no acepta importes enviados por el cliente.
 
 Errores relevantes: `3001` compartimento no encontrado; `4001` reserva no
 encontrada; `4002` compartimento no disponible; `4003` compartimento con
 reserva activa; `4004` reserva no cancelable; `5003` ticket ya emitido para
 la reserva.
+
+## Pagos simulados
+
+Base path: `/api/payments`
+
+- `POST /api/payments/simulate` — registra un intento simulado aprobado o
+  rechazado para una reserva pendiente.
+
+Ejemplo de petición:
+
+```json
+{
+  "reservationId": 1,
+  "outcome": "APPROVED"
+}
+```
+
+Los resultados admitidos son `APPROVED` y `DECLINED`. Un rechazo conserva la
+reserva pendiente mientras siga abierta su ventana de pago. Una aprobación
+confirma la reserva y devuelve `ticket`, que contiene `ticketCode` y
+`accessCode`. Ese es el único momento en que se devuelve el código de acceso
+completo; la persistencia guarda su hash y una vista parcial.
+
+El simulador no recibe ni almacena números de tarjeta, fechas de caducidad ni
+códigos de seguridad. Cada intento conserva su referencia, resultado, importe,
+moneda y fecha de procesamiento.
+
+Errores relevantes: `4001` reserva no encontrada; `6001` reserva no pendiente
+de pago; `6002` ventana de pago expirada.
 
 ## Tickets
 

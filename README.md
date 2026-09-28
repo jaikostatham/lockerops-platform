@@ -1,12 +1,13 @@
 # LockerOps Platform
 
 API REST de demostración para estaciones de lockers, compartimentos,
-reservas y tickets. El proyecto incluye un [kiosco asociado](https://github.com/jaikostatham/lockerops-kiosk-frontend).
+reservas, pagos simulados y tickets. El proyecto incluye un
+[kiosco asociado](https://github.com/jaikostatham/lockerops-kiosk-frontend).
 
 La instancia pública ofrece un catálogo ficticio de estaciones y compartimentos.
 Los perfiles desplegados limitan la API a ese catálogo; los flujos de reservas,
-tickets y códigos de acceso forman parte de la aplicación y se ejercitan en
-desarrollo y en las pruebas automatizadas.
+pagos simulados, tickets y códigos de acceso forman parte de la aplicación y
+se ejercitan en desarrollo y en las pruebas automatizadas.
 
 ## Tecnologías
 
@@ -25,7 +26,7 @@ flowchart LR
 ```
 
 El código se organiza por funcionalidades: `station`, `compartment`,
-`reservation` y `ticket`. La aplicación también contiene el contrato común
+`reservation`, `payment` y `ticket`. La aplicación también contiene el contrato común
 de errores y la configuración transversal.
 
 ## API

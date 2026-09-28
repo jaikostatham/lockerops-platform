@@ -39,6 +39,12 @@ public class ReservationExpirationService {
                         now,
                         PageRequest.of(0, expirationProperties.getBatchSize())
                 );
+        List<Reservation> unpaidReservations = reservationRepository
+                .findByStatusAndPaymentExpiresAtLessThanEqual(
+                        ReservationStatus.PENDING_PAYMENT,
+                        now,
+                        PageRequest.of(0, expirationProperties.getBatchSize())
+                );
 
         int expiredCount = 0;
 
@@ -48,7 +54,30 @@ public class ReservationExpirationService {
             }
         }
 
+        for (Reservation reservation : unpaidReservations) {
+            if (expirePendingPaymentReservation(reservation, now)) {
+                expiredCount++;
+            }
+        }
+
         return expiredCount;
+    }
+
+    private boolean expirePendingPaymentReservation(Reservation reservation, Instant expiredAt) {
+        if (reservation.getStatus() != ReservationStatus.PENDING_PAYMENT) {
+            return false;
+        }
+
+        if (reservation.getPaymentExpiresAt() == null
+                || reservation.getPaymentExpiresAt().isAfter(expiredAt)) {
+            return false;
+        }
+
+        reservation.setStatus(ReservationStatus.EXPIRED);
+        reservation.setExpiredAt(expiredAt);
+        releaseReservedCompartment(reservation.getLockerCompartment());
+
+        return true;
     }
 
     private boolean expireReservationIfDue(Reservation reservation, Instant expiredAt) {

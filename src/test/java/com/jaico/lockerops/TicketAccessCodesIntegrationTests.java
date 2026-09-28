@@ -6,6 +6,7 @@ import com.jaico.lockerops.compartment.domain.enums.LockerCompartmentSize;
 import com.jaico.lockerops.compartment.domain.enums.LockerCompartmentStatus;
 import com.jaico.lockerops.compartment.domain.model.LockerCompartment;
 import com.jaico.lockerops.compartment.infrastructure.persistence.repository.LockerCompartmentRepository;
+import com.jaico.lockerops.payment.infrastructure.persistence.repository.PaymentAttemptRepository;
 import com.jaico.lockerops.reservation.infrastructure.persistence.repository.ReservationRepository;
 import com.jaico.lockerops.station.domain.enums.LockerStationStatus;
 import com.jaico.lockerops.station.domain.model.LockerStation;
@@ -62,10 +63,14 @@ class TicketAccessCodesIntegrationTests {
     @Autowired
     private AccessCodeHasher accessCodeHasher;
 
+    @Autowired
+    private PaymentAttemptRepository paymentAttemptRepository;
+
     @BeforeEach
     void setUp() {
         accessCodeRepository.deleteAll();
         ticketRepository.deleteAll();
+        paymentAttemptRepository.deleteAll();
         reservationRepository.deleteAll();
         lockerCompartmentRepository.deleteAll();
         lockerStationRepository.deleteAll();
@@ -75,20 +80,10 @@ class TicketAccessCodesIntegrationTests {
     void createReservationIssuesTicketAndReusableAccessCode() throws Exception {
         LockerCompartment lockerCompartment = createAvailableLockerCompartment();
 
-        String createReservationResponse = mockMvc.perform(post("/api/reservations")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(Map.of(
-                                "lockerCompartmentId", lockerCompartment.getId(),
-                                "durationMinutes", 60,
-                                "customerReference", "customer-001"
-                        ))))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.reservationId").isNumber())
-                .andExpect(jsonPath("$.ticketCode").isNotEmpty())
-                .andExpect(jsonPath("$.accessCode").isNotEmpty())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
+        String createReservationResponse = createAndApproveReservation(
+                lockerCompartment,
+                "customer-001"
+        );
 
         JsonNode response = objectMapper.readTree(createReservationResponse);
         String ticketCode = response.get("ticketCode").asText();
@@ -113,16 +108,7 @@ class TicketAccessCodesIntegrationTests {
     void validateAccessCodeWithInvalidCredentialsReturnsGenericNotFoundError() throws Exception {
         LockerCompartment lockerCompartment = createAvailableLockerCompartment();
 
-        String createReservationResponse = mockMvc.perform(post("/api/reservations")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(Map.of(
-                                "lockerCompartmentId", lockerCompartment.getId(),
-                                "durationMinutes", 60
-                        ))))
-                .andExpect(status().isCreated())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
+        String createReservationResponse = createAndApproveReservation(lockerCompartment, null);
 
         JsonNode response = objectMapper.readTree(createReservationResponse);
         String ticketCode = response.get("ticketCode").asText();
@@ -154,16 +140,7 @@ class TicketAccessCodesIntegrationTests {
     void cancelReservationRevokesActiveAccessCode() throws Exception {
         LockerCompartment lockerCompartment = createAvailableLockerCompartment();
 
-        String createReservationResponse = mockMvc.perform(post("/api/reservations")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(Map.of(
-                                "lockerCompartmentId", lockerCompartment.getId(),
-                                "durationMinutes", 60
-                        ))))
-                .andExpect(status().isCreated())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
+        String createReservationResponse = createAndApproveReservation(lockerCompartment, null);
 
         JsonNode response = objectMapper.readTree(createReservationResponse);
         Long reservationId = response.get("reservationId").asLong();
@@ -193,6 +170,46 @@ class TicketAccessCodesIntegrationTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.granted").value(true))
                 .andExpect(jsonPath("$.ticketCode").isNotEmpty());
+    }
+
+    private String createAndApproveReservation(
+            LockerCompartment lockerCompartment,
+            String customerReference
+    ) throws Exception {
+        Map<String, Object> reservationPayload = new java.util.LinkedHashMap<>();
+        reservationPayload.put("lockerCompartmentId", lockerCompartment.getId());
+        reservationPayload.put("durationMinutes", 60);
+        if (customerReference != null) {
+            reservationPayload.put("customerReference", customerReference);
+        }
+
+        String pendingReservation = mockMvc.perform(post("/api/reservations")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(reservationPayload)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value("PENDING_PAYMENT"))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        long reservationId = objectMapper.readTree(pendingReservation).get("id").asLong();
+
+        String paymentResponse = mockMvc.perform(post("/api/payments/simulate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "reservationId", reservationId,
+                                "outcome", "APPROVED"
+                        ))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.paymentStatus").value("APPROVED"))
+                .andExpect(jsonPath("$.ticket.ticketCode").isNotEmpty())
+                .andExpect(jsonPath("$.ticket.accessCode").isNotEmpty())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode payment = objectMapper.readTree(paymentResponse);
+        return payment.get("ticket").toString();
     }
 
     private LockerCompartment createAvailableLockerCompartment() {

@@ -4,7 +4,6 @@ import com.jaico.lockerops.reservation.api.dto.request.CreateReservationRequest;
 import com.jaico.lockerops.reservation.api.dto.response.ReservationResponse;
 import com.jaico.lockerops.shared.exception.ApiErrorResponse;
 import com.jaico.lockerops.reservation.application.service.ReservationService;
-import com.jaico.lockerops.ticket.api.dto.response.ReservationTicketResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -68,10 +67,10 @@ public class ReservationController {
                     )
             )
     })
-    public ResponseEntity<ReservationTicketResponse> createReservation(
+    public ResponseEntity<ReservationResponse> createReservation(
             @Valid @RequestBody CreateReservationRequest request
     ) {
-        ReservationTicketResponse createdReservation =
+        ReservationResponse createdReservation =
                 reservationService.createReservation(request);
 
         return ResponseEntity
