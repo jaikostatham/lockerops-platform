@@ -1,9 +1,11 @@
 # Contrato de la API
 
 Este documento describe las rutas y los payloads de la API REST. Los valores
-de los ejemplos son sintéticos. Los perfiles desplegados exponen el catálogo
-público de estaciones y compartimentos; los demás flujos están disponibles en
-el entorno local de desarrollo.
+de los ejemplos son sintéticos. Los perfiles local, Testing y Producción
+permiten el flujo público del quiosco: consulta del catálogo, creación de
+reservas, pago simulado y validación del código de acceso. En los perfiles
+desplegados, las rutas de administración del catálogo y las consultas de
+colecciones privadas no están expuestas públicamente.
 
 ## Modelo de error
 
@@ -31,9 +33,9 @@ Base path: `/api/locker-stations`
 
 - `GET /api/locker-stations` — lista estaciones.
 - `GET /api/locker-stations/{id}` — consulta una estación.
-- `POST /api/locker-stations` — crea una estación.
-- `PUT /api/locker-stations/{id}` — actualiza una estación.
-- `DELETE /api/locker-stations/{id}` — elimina una estación.
+- `POST /api/locker-stations` — crea una estación (uso local/administrativo).
+- `PUT /api/locker-stations/{id}` — actualiza una estación (uso local/administrativo).
+- `DELETE /api/locker-stations/{id}` — elimina una estación (uso local/administrativo).
 
 DTOs: `CreateLockerStationRequest`, `UpdateLockerStationRequest` y
 `LockerStationResponse`.
@@ -46,12 +48,12 @@ Errores relevantes: `1000` validación; `1001` cuerpo de petición no válido;
 Base path: `/api`
 
 - `POST /api/locker-stations/{lockerStationId}/compartments` — crea un
-  compartimento en una estación.
+  compartimento en una estación (uso local/administrativo).
 - `GET /api/locker-stations/{lockerStationId}/compartments` — lista los
   compartimentos de una estación.
 - `GET /api/locker-compartments/{id}` — consulta un compartimento.
-- `PUT /api/locker-compartments/{id}` — actualiza un compartimento.
-- `DELETE /api/locker-compartments/{id}` — elimina un compartimento.
+- `PUT /api/locker-compartments/{id}` — actualiza un compartimento (uso local/administrativo).
+- `DELETE /api/locker-compartments/{id}` — elimina un compartimento (uso local/administrativo).
 
 DTOs: `CreateLockerCompartmentRequest`, `UpdateLockerCompartmentRequest` y
 `LockerCompartmentResponse`.
@@ -65,10 +67,12 @@ Base path: `/api/reservations`
 
 - `POST /api/reservations` — crea una reserva pendiente de pago y bloquea
   temporalmente el compartimento.
-- `GET /api/reservations` — lista reservas.
-- `GET /api/reservations/{id}` — consulta una reserva.
+- `GET /api/reservations` — lista reservas (consulta interna; no expuesta en
+  los perfiles desplegados).
+- `GET /api/reservations/{id}` — consulta una reserva (consulta interna; no
+  expuesta en los perfiles desplegados).
 - `PATCH /api/reservations/{id}/cancel` — cancela una reserva pendiente o
-  confirmada.
+  confirmada (operación interna; no expuesta en los perfiles desplegados).
 
 DTOs: `CreateReservationRequest`, `ReservationResponse` y
 `ReservationTicketResponse`.
@@ -126,8 +130,10 @@ de pago; `6002` ventana de pago expirada.
 
 Base path: `/api/tickets`
 
-- `GET /api/tickets/{id}` — consulta un ticket por identificador interno.
-- `GET /api/tickets/code/{ticketCode}` — consulta un ticket por código público.
+- `GET /api/tickets/{id}` — consulta un ticket por identificador interno (no
+  expuesta en los perfiles desplegados).
+- `GET /api/tickets/code/{ticketCode}` — consulta un ticket por código público
+  (no expuesta en los perfiles desplegados).
 
 DTO: `TicketResponse`.
 

@@ -18,12 +18,11 @@ server:
 
 lockerops:
   api:
-    read-only: true
-    public-catalog-only: true
+    public-kiosk-only: true
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS}
   reservations:
     expiration:
-      enabled: false
+      enabled: true
   access-code:
     hash-secret: ${ACCESS_CODE_HASH_SECRET}
