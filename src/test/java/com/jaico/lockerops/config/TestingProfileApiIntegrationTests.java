@@ -111,12 +111,14 @@ class TestingProfileApiIntegrationTests {
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
-        long reservationId = objectMapper.readTree(reservationResponse).get("id").asLong();
+        JsonNode reservation = objectMapper.readTree(reservationResponse);
+        long reservationId = reservation.get("id").asLong();
+        String reservationReference = reservation.get("reservationReference").asText();
 
         String paymentResponse = mockMvc.perform(post("/api/payments/simulate")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
-                                "reservationId", reservationId,
+                                "reservationReference", reservationReference,
                                 "outcome", "APPROVED"
                         ))))
                 .andExpect(status().isOk())

@@ -18,7 +18,9 @@ import java.util.UUID;
 
 public interface ReservationRepository extends JpaRepository<Reservation, Long> {
 
-    Optional<Reservation> findByReservationReference(UUID reservationReference);
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select reservation from Reservation reservation where reservation.reservationReference = :reference")
+    Optional<Reservation> findByReservationReferenceForUpdate(@Param("reference") UUID reference);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select reservation from Reservation reservation where reservation.id = :id")

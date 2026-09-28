@@ -101,7 +101,9 @@ arrancar. Hibernate valida el esquema existente y no lo modifica.
    `AVAILABLE`.
 3. Si la reserva estaba confirmada, el ticket y los códigos de acceso asociados
    pasan también a estado expirado.
-4. En los perfiles desplegados, el proceso de expiración está desactivado.
+4. El proceso también se ejecuta en los perfiles desplegados. Por defecto, el
+   planificador revisa las reservas cada 60 segundos; puede haber hasta un
+   intervalo de retraso respecto a la hora límite antes de actualizar el estado.
 
 ### Validar un código de acceso
 

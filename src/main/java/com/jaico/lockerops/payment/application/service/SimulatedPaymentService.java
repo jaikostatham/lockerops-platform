@@ -41,10 +41,11 @@ public class SimulatedPaymentService {
 
     @Transactional
     public SimulatedPaymentResponse simulatePayment(SimulatePaymentRequest request) {
-        Reservation reservation = reservationRepository.findByIdForUpdate(request.getReservationId())
+        Reservation reservation = reservationRepository
+                .findByReservationReferenceForUpdate(request.getReservationReference())
                 .orElseThrow(() -> new ApiException(
                         ApiErrorCode.RESERVATION_NOT_FOUND,
-                        request.getReservationId()
+                        request.getReservationReference()
                 ));
 
         validateReservationCanBePaid(reservation);

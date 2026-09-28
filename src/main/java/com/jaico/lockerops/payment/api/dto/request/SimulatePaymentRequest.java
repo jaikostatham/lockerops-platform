@@ -2,23 +2,23 @@ package com.jaico.lockerops.payment.api.dto.request;
 
 import com.jaico.lockerops.payment.domain.enums.PaymentStatus;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
+
+import java.util.UUID;
 
 public class SimulatePaymentRequest {
 
-    @NotNull(message = "El identificador de la reserva es obligatorio")
-    @Positive(message = "El identificador de la reserva debe ser mayor que cero")
-    private Long reservationId;
+    @NotNull(message = "La referencia de la reserva es obligatoria")
+    private UUID reservationReference;
 
     @NotNull(message = "El resultado simulado del pago es obligatorio")
     private PaymentStatus outcome;
 
-    public Long getReservationId() {
-        return reservationId;
+    public UUID getReservationReference() {
+        return reservationReference;
     }
 
-    public void setReservationId(Long reservationId) {
-        this.reservationId = reservationId;
+    public void setReservationReference(UUID reservationReference) {
+        this.reservationReference = reservationReference;
     }
 
     public PaymentStatus getOutcome() {

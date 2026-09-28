@@ -81,7 +81,7 @@ class SimulatedPaymentIntegrationTests {
         mockMvc.perform(post("/api/payments/simulate")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json(Map.of(
-                                "reservationId", reservationId,
+                                "reservationReference", reservationReferenceFor(reservationId),
                                 "outcome", "APPROVED"
                         ))))
                 .andExpect(status().isOk())
@@ -110,7 +110,7 @@ class SimulatedPaymentIntegrationTests {
         mockMvc.perform(post("/api/payments/simulate")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json(Map.of(
-                                "reservationId", reservationId,
+                                "reservationReference", reservationReferenceFor(reservationId),
                                 "outcome", "DECLINED"
                         ))))
                 .andExpect(status().isOk())
@@ -121,7 +121,7 @@ class SimulatedPaymentIntegrationTests {
         mockMvc.perform(post("/api/payments/simulate")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json(Map.of(
-                                "reservationId", reservationId,
+                                "reservationReference", reservationReferenceFor(reservationId),
                                 "outcome", "APPROVED"
                         ))))
                 .andExpect(status().isOk())
@@ -140,7 +140,7 @@ class SimulatedPaymentIntegrationTests {
         mockMvc.perform(post("/api/payments/simulate")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json(Map.of(
-                                "reservationId", reservationId,
+                                "reservationReference", reservationReferenceFor(reservationId),
                                 "outcome", "APPROVED"
                         ))))
                 .andExpect(status().isConflict())
@@ -166,7 +166,7 @@ class SimulatedPaymentIntegrationTests {
         mockMvc.perform(post("/api/payments/simulate")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json(Map.of(
-                                "reservationId", reservation.getId(),
+                                "reservationReference", reservation.getReservationReference().toString(),
                                 "outcome", "APPROVED"
                         ))))
                 .andExpect(status().isConflict())
@@ -174,6 +174,26 @@ class SimulatedPaymentIntegrationTests {
 
         assertThat(paymentAttemptRepository.findAll()).isEmpty();
         assertThat(ticketRepository.findByReservation_Id(reservation.getId())).isEmpty();
+    }
+
+    @Test
+    void paymentCannotBeRequestedWithPredictableInternalReservationId() throws Exception {
+        LockerCompartment compartment = createAvailableCompartment(LockerCompartmentSize.MEDIUM);
+        long reservationId = createPendingReservation(compartment, 60);
+
+        mockMvc.perform(post("/api/payments/simulate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json(Map.of(
+                                "reservationId", reservationId,
+                                "outcome", "APPROVED"
+                        ))))
+                .andExpect(status().isBadRequest());
+
+        Reservation reservation = reservationRepository.findById(reservationId).orElseThrow();
+
+        assertThat(reservation.getStatus()).isEqualTo(ReservationStatus.PENDING_PAYMENT);
+        assertThat(paymentAttemptRepository.findAll()).isEmpty();
+        assertThat(ticketRepository.findByReservation_Id(reservationId)).isEmpty();
     }
 
     private long createPendingReservation(
@@ -200,10 +220,17 @@ class SimulatedPaymentIntegrationTests {
         mockMvc.perform(post("/api/payments/simulate")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json(Map.of(
-                                "reservationId", reservationId,
+                                "reservationReference", reservationReferenceFor(reservationId),
                                 "outcome", "APPROVED"
                         ))))
                 .andExpect(status().isOk());
+    }
+
+    private String reservationReferenceFor(long reservationId) {
+        return reservationRepository.findById(reservationId)
+                .orElseThrow()
+                .getReservationReference()
+                .toString();
     }
 
     private LockerCompartment createAvailableCompartment(LockerCompartmentSize size) {

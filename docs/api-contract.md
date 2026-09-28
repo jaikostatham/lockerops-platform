@@ -108,10 +108,13 @@ Ejemplo de petición:
 
 ```json
 {
-  "reservationId": 1,
+  "reservationReference": "d7d42a35-b769-4be8-bfbe-73d4aa04c4e0",
   "outcome": "APPROVED"
 }
 ```
+
+La solicitud identifica la reserva mediante su referencia UUID aleatoria, no
+mediante el identificador numérico interno.
 
 Los resultados admitidos son `APPROVED` y `DECLINED`. Un rechazo conserva la
 reserva pendiente mientras siga abierta su ventana de pago. Una aprobación
