@@ -1,15 +1,27 @@
 package com.jaico.lockerops.config;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jaico.lockerops.compartment.domain.enums.LockerCompartmentSize;
+import com.jaico.lockerops.compartment.domain.enums.LockerCompartmentStatus;
+import com.jaico.lockerops.compartment.domain.model.LockerCompartment;
+import com.jaico.lockerops.compartment.infrastructure.persistence.repository.LockerCompartmentRepository;
+import com.jaico.lockerops.station.domain.enums.LockerStationStatus;
+import com.jaico.lockerops.station.domain.model.LockerStation;
+import com.jaico.lockerops.station.infrastructure.persistence.repository.LockerStationRepository;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest(properties = {
@@ -30,8 +42,17 @@ class TestingProfileApiIntegrationTests {
     @Autowired
     private MockMvc mockMvc;
 
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @Autowired
+    private LockerStationRepository lockerStationRepository;
+
+    @Autowired
+    private LockerCompartmentRepository lockerCompartmentRepository;
+
     @Test
-    void testingProfileExposesOnlyThePublicCatalog() throws Exception {
+    void testingProfileExposesTheKioskFlowAndHidesAdministrativeEndpoints() throws Exception {
         mockMvc.perform(get("/api/locker-stations")
                         .header("Origin", "http://localhost:9000"))
                 .andExpect(status().isOk())
@@ -40,7 +61,81 @@ class TestingProfileApiIntegrationTests {
         mockMvc.perform(get("/api/reservations"))
                 .andExpect(status().isNotFound());
 
-        mockMvc.perform(post("/api/locker-stations"))
-                .andExpect(status().isMethodNotAllowed());
+        mockMvc.perform(post("/api/reservations")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(post("/api/payments/simulate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(post("/api/access-codes/validate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(post("/api/locker-stations")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void testingProfileCompletesReservationPaymentAndAccessValidation() throws Exception {
+        LockerStation station = new LockerStation();
+        station.setName("Testing kiosk station");
+        station.setModel("LOCKER PRO");
+        station.setManufacturer("LOCKEROPS");
+        station.setStatus(LockerStationStatus.ACTIVE);
+        station.setLocation("Testing environment");
+        LockerStation savedStation = lockerStationRepository.save(station);
+
+        LockerCompartment compartment = lockerCompartmentRepository.save(new LockerCompartment(
+                1,
+                LockerCompartmentSize.MEDIUM,
+                LockerCompartmentStatus.AVAILABLE,
+                savedStation
+        ));
+
+        String reservationResponse = mockMvc.perform(post("/api/reservations")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "lockerCompartmentId", compartment.getId(),
+                                "durationMinutes", 60,
+                                "customerReference", "TESTING-KIOSK-FLOW"
+                        ))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value("PENDING_PAYMENT"))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        JsonNode reservation = objectMapper.readTree(reservationResponse);
+        long reservationId = reservation.get("id").asLong();
+        String reservationReference = reservation.get("reservationReference").asText();
+
+        String paymentResponse = mockMvc.perform(post("/api/payments/simulate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "reservationReference", reservationReference,
+                                "outcome", "APPROVED"
+                        ))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.reservationStatus").value("CONFIRMED"))
+                .andExpect(jsonPath("$.ticket.accessCode").isNotEmpty())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        JsonNode ticket = objectMapper.readTree(paymentResponse).get("ticket");
+
+        mockMvc.perform(post("/api/access-codes/validate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "ticketCode", ticket.get("ticketCode").asText(),
+                                "accessCode", ticket.get("accessCode").asText()
+                        ))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.granted").value(true));
     }
 }

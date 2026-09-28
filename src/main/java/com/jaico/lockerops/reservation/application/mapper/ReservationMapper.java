@@ -16,14 +16,20 @@ public class ReservationMapper {
             LockerCompartment lockerCompartment,
             Instant reservedFrom,
             Instant reservedUntil,
-            String customerReference
+            String customerReference,
+            long amountMinor,
+            String currency,
+            Instant paymentExpiresAt
     ) {
         return new Reservation(
                 lockerCompartment,
-                ReservationStatus.CONFIRMED,
+                ReservationStatus.PENDING_PAYMENT,
                 reservedFrom,
                 reservedUntil,
-                customerReference
+                customerReference,
+                amountMinor,
+                currency,
+                paymentExpiresAt
         );
     }
 
@@ -40,6 +46,9 @@ public class ReservationMapper {
                 reservation.getReservedFrom(),
                 reservation.getReservedUntil(),
                 reservation.getCustomerReference(),
+                reservation.getAmountMinor(),
+                reservation.getCurrency(),
+                reservation.getPaymentExpiresAt(),
                 reservation.getCreatedAt(),
                 reservation.getUpdatedAt(),
                 reservation.getCancelledAt(),

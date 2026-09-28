@@ -5,6 +5,7 @@ import com.jaico.lockerops.compartment.domain.enums.LockerCompartmentSize;
 import com.jaico.lockerops.compartment.domain.enums.LockerCompartmentStatus;
 import com.jaico.lockerops.compartment.domain.model.LockerCompartment;
 import com.jaico.lockerops.compartment.infrastructure.persistence.repository.LockerCompartmentRepository;
+import com.jaico.lockerops.payment.infrastructure.persistence.repository.PaymentAttemptRepository;
 import com.jaico.lockerops.reservation.application.service.ReservationExpirationService;
 import com.jaico.lockerops.reservation.domain.enums.ReservationStatus;
 import com.jaico.lockerops.reservation.domain.model.Reservation;
@@ -74,10 +75,14 @@ class ReservationExpirationIntegrationTests {
     @Autowired
     private AccessCodeHasher accessCodeHasher;
 
+    @Autowired
+    private PaymentAttemptRepository paymentAttemptRepository;
+
     @BeforeEach
     void setUp() {
         accessCodeRepository.deleteAll();
         ticketRepository.deleteAll();
+        paymentAttemptRepository.deleteAll();
         reservationRepository.deleteAll();
         lockerCompartmentRepository.deleteAll();
         lockerStationRepository.deleteAll();
@@ -182,6 +187,36 @@ class ReservationExpirationIntegrationTests {
         int expiredCount = reservationExpirationService.expireDueReservations();
 
         assertThat(expiredCount).isZero();
+    }
+
+    @Test
+    void pendingPaymentReservationExpiresAndReleasesCompartment() {
+        LockerCompartment lockerCompartment = createLockerCompartment(LockerCompartmentStatus.RESERVED);
+        Instant now = Instant.now();
+        Reservation reservation = new Reservation(
+                lockerCompartment,
+                ReservationStatus.PENDING_PAYMENT,
+                now,
+                now.plus(1, ChronoUnit.HOURS),
+                "customer-pending-payment",
+                200L,
+                "EUR",
+                now.minus(1, ChronoUnit.MINUTES)
+        );
+        reservationRepository.saveAndFlush(reservation);
+
+        int expiredCount = reservationExpirationService.expireDueReservations();
+
+        Reservation storedReservation = reservationRepository.findById(reservation.getId()).orElseThrow();
+        LockerCompartment storedCompartment = lockerCompartmentRepository
+                .findById(lockerCompartment.getId())
+                .orElseThrow();
+
+        assertThat(expiredCount).isEqualTo(1);
+        assertThat(storedReservation.getStatus()).isEqualTo(ReservationStatus.EXPIRED);
+        assertThat(storedReservation.getExpiredAt()).isNotNull();
+        assertThat(storedCompartment.getStatus()).isEqualTo(LockerCompartmentStatus.AVAILABLE);
+        assertThat(ticketRepository.findByReservation_Id(reservation.getId())).isEmpty();
     }
 
     @Test

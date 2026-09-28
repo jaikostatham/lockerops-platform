@@ -38,11 +38,12 @@ server:
 
 lockerops:
   api:
-    read-only: ${API_READ_ONLY:false}
-    public-catalog-only: false
+    public-kiosk-only: ${API_PUBLIC_KIOSK_ONLY:false}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:9000}
   reservations:
+    payment:
+      timeout-minutes: ${RESERVATION_PAYMENT_TIMEOUT_MINUTES:10}
     expiration:
       enabled: ${RESERVATION_EXPIRATION_ENABLED:true}
       fixed-delay-ms: ${RESERVATION_EXPIRATION_FIXED_DELAY_MS:60000}
@@ -73,3 +74,5 @@ service:
     5104: "El código de acceso no está activo"
     5105: "La reserva asociada al código de acceso no está activa"
     5106: "El ticket o código de acceso no es válido"
+    6001: "La reserva no está pendiente de pago"
+    6002: "El plazo para completar el pago ha expirado"

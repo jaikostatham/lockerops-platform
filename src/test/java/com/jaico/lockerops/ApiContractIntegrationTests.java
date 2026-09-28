@@ -6,6 +6,7 @@ import com.jaico.lockerops.compartment.domain.enums.LockerCompartmentSize;
 import com.jaico.lockerops.compartment.domain.enums.LockerCompartmentStatus;
 import com.jaico.lockerops.compartment.domain.model.LockerCompartment;
 import com.jaico.lockerops.compartment.infrastructure.persistence.repository.LockerCompartmentRepository;
+import com.jaico.lockerops.payment.infrastructure.persistence.repository.PaymentAttemptRepository;
 import com.jaico.lockerops.reservation.infrastructure.persistence.repository.ReservationRepository;
 import com.jaico.lockerops.station.domain.enums.LockerStationStatus;
 import com.jaico.lockerops.station.domain.model.LockerStation;
@@ -59,10 +60,14 @@ class ApiContractIntegrationTests {
     @Autowired
     private AccessCodeRepository accessCodeRepository;
 
+    @Autowired
+    private PaymentAttemptRepository paymentAttemptRepository;
+
     @BeforeEach
     void setUp() {
         accessCodeRepository.deleteAll();
         ticketRepository.deleteAll();
+        paymentAttemptRepository.deleteAll();
         reservationRepository.deleteAll();
         lockerCompartmentRepository.deleteAll();
         lockerStationRepository.deleteAll();
@@ -190,19 +195,38 @@ class ApiContractIntegrationTests {
                                 "customerReference", "KIOSK-CONTRACT-001"
                         ))))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.reservationId").isNumber())
-                .andExpect(jsonPath("$.reservationStatus").value("CONFIRMED"))
+                .andExpect(jsonPath("$.id").isNumber())
+                .andExpect(jsonPath("$.status").value("PENDING_PAYMENT"))
                 .andExpect(jsonPath("$.lockerCompartmentId").value(lockerCompartment.getId()))
-                .andExpect(jsonPath("$.ticketCode").isNotEmpty())
-                .andExpect(jsonPath("$.accessCode").isNotEmpty())
+                .andExpect(jsonPath("$.amountMinor").value(400))
+                .andExpect(jsonPath("$.currency").value("EUR"))
+                .andExpect(jsonPath("$.paymentExpiresAt").isNotEmpty())
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
 
         JsonNode response = objectMapper.readTree(createResponse);
-        Long reservationId = response.get("reservationId").asLong();
-        String ticketCode = response.get("ticketCode").asText();
-        String accessCode = response.get("accessCode").asText();
+        Long reservationId = response.get("id").asLong();
+        String reservationReference = response.get("reservationReference").asText();
+
+        String paymentResponse = mockMvc.perform(post("/api/payments/simulate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json(Map.of(
+                                "reservationReference", reservationReference,
+                                "outcome", "APPROVED"
+                        ))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.paymentStatus").value("APPROVED"))
+                .andExpect(jsonPath("$.reservationStatus").value("CONFIRMED"))
+                .andExpect(jsonPath("$.ticket.ticketCode").isNotEmpty())
+                .andExpect(jsonPath("$.ticket.accessCode").isNotEmpty())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode payment = objectMapper.readTree(paymentResponse);
+        String ticketCode = payment.get("ticket").get("ticketCode").asText();
+        String accessCode = payment.get("ticket").get("accessCode").asText();
 
         mockMvc.perform(get("/api/reservations/{id}", reservationId))
                 .andExpect(status().isOk())
@@ -256,17 +280,32 @@ class ApiContractIntegrationTests {
     }
 
     @Test
-    void reservationCreationDoesNotExposeStoredAccessCodeFields() throws Exception {
+    void approvedPaymentDoesNotExposeStoredAccessCodeFields() throws Exception {
         LockerCompartment lockerCompartment = createLockerCompartment(LockerCompartmentStatus.AVAILABLE);
 
-        mockMvc.perform(post("/api/reservations")
+        String reservationResponse = mockMvc.perform(post("/api/reservations")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json(Map.of(
                                 "lockerCompartmentId", lockerCompartment.getId(),
                                 "durationMinutes", 60
                         ))))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.accessCode").isNotEmpty())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode reservation = objectMapper.readTree(reservationResponse);
+        long reservationId = reservation.get("id").asLong();
+        String reservationReference = reservation.get("reservationReference").asText();
+
+        mockMvc.perform(post("/api/payments/simulate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json(Map.of(
+                                "reservationReference", reservationReference,
+                                "outcome", "APPROVED"
+                        ))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.ticket.accessCode").isNotEmpty())
                 .andExpect(jsonPath("$", not(hasKey("codeHash"))))
                 .andExpect(jsonPath("$", not(hasKey("codePreview"))));
     }

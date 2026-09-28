@@ -1,9 +1,11 @@
 # Contrato de la API
 
 Este documento describe las rutas y los payloads de la API REST. Los valores
-de los ejemplos son sintéticos. Los perfiles desplegados exponen el catálogo
-público de estaciones y compartimentos; los demás flujos están disponibles en
-el entorno local de desarrollo.
+de los ejemplos son sintéticos. Los perfiles local, Testing y Producción
+permiten el flujo público del quiosco: consulta del catálogo, creación de
+reservas, pago simulado y validación del código de acceso. En los perfiles
+desplegados, las rutas de administración del catálogo y las consultas de
+colecciones privadas no están expuestas públicamente.
 
 ## Modelo de error
 
@@ -31,9 +33,9 @@ Base path: `/api/locker-stations`
 
 - `GET /api/locker-stations` — lista estaciones.
 - `GET /api/locker-stations/{id}` — consulta una estación.
-- `POST /api/locker-stations` — crea una estación.
-- `PUT /api/locker-stations/{id}` — actualiza una estación.
-- `DELETE /api/locker-stations/{id}` — elimina una estación.
+- `POST /api/locker-stations` — crea una estación (uso local/administrativo).
+- `PUT /api/locker-stations/{id}` — actualiza una estación (uso local/administrativo).
+- `DELETE /api/locker-stations/{id}` — elimina una estación (uso local/administrativo).
 
 DTOs: `CreateLockerStationRequest`, `UpdateLockerStationRequest` y
 `LockerStationResponse`.
@@ -46,12 +48,12 @@ Errores relevantes: `1000` validación; `1001` cuerpo de petición no válido;
 Base path: `/api`
 
 - `POST /api/locker-stations/{lockerStationId}/compartments` — crea un
-  compartimento en una estación.
+  compartimento en una estación (uso local/administrativo).
 - `GET /api/locker-stations/{lockerStationId}/compartments` — lista los
   compartimentos de una estación.
 - `GET /api/locker-compartments/{id}` — consulta un compartimento.
-- `PUT /api/locker-compartments/{id}` — actualiza un compartimento.
-- `DELETE /api/locker-compartments/{id}` — elimina un compartimento.
+- `PUT /api/locker-compartments/{id}` — actualiza un compartimento (uso local/administrativo).
+- `DELETE /api/locker-compartments/{id}` — elimina un compartimento (uso local/administrativo).
 
 DTOs: `CreateLockerCompartmentRequest`, `UpdateLockerCompartmentRequest` y
 `LockerCompartmentResponse`.
@@ -63,11 +65,14 @@ encontrado; `3002` número de compartimento duplicado en la misma estación.
 
 Base path: `/api/reservations`
 
-- `POST /api/reservations` — crea una reserva confirmada y emite un ticket y
-  un código de acceso.
-- `GET /api/reservations` — lista reservas.
-- `GET /api/reservations/{id}` — consulta una reserva.
-- `PATCH /api/reservations/{id}/cancel` — cancela una reserva confirmada.
+- `POST /api/reservations` — crea una reserva pendiente de pago y bloquea
+  temporalmente el compartimento.
+- `GET /api/reservations` — lista reservas (consulta interna; no expuesta en
+  los perfiles desplegados).
+- `GET /api/reservations/{id}` — consulta una reserva (consulta interna; no
+  expuesta en los perfiles desplegados).
+- `PATCH /api/reservations/{id}/cancel` — cancela una reserva pendiente o
+  confirmada (operación interna; no expuesta en los perfiles desplegados).
 
 DTOs: `CreateReservationRequest`, `ReservationResponse` y
 `ReservationTicketResponse`.
@@ -82,22 +87,56 @@ Ejemplo de petición:
 }
 ```
 
-La respuesta de creación contiene los datos de la reserva, `ticketCode` y
-`accessCode`. La respuesta de emisión es el único momento en que se devuelve
-el valor completo del código de acceso; la persistencia guarda su hash y una
-vista parcial.
+La respuesta de creación contiene el estado `PENDING_PAYMENT`, el precio en
+`amountMinor`, la moneda `currency` y `paymentExpiresAt`. El importe se expresa
+en la unidad menor de la moneda; por ejemplo, `400` representa 4,00 EUR. El
+servidor calcula el precio y no acepta importes enviados por el cliente.
 
 Errores relevantes: `3001` compartimento no encontrado; `4001` reserva no
 encontrada; `4002` compartimento no disponible; `4003` compartimento con
 reserva activa; `4004` reserva no cancelable; `5003` ticket ya emitido para
 la reserva.
 
+## Pagos simulados
+
+Base path: `/api/payments`
+
+- `POST /api/payments/simulate` — registra un intento simulado aprobado o
+  rechazado para una reserva pendiente.
+
+Ejemplo de petición:
+
+```json
+{
+  "reservationReference": "d7d42a35-b769-4be8-bfbe-73d4aa04c4e0",
+  "outcome": "APPROVED"
+}
+```
+
+La solicitud identifica la reserva mediante su referencia UUID aleatoria, no
+mediante el identificador numérico interno.
+
+Los resultados admitidos son `APPROVED` y `DECLINED`. Un rechazo conserva la
+reserva pendiente mientras siga abierta su ventana de pago. Una aprobación
+confirma la reserva y devuelve `ticket`, que contiene `ticketCode` y
+`accessCode`. Ese es el único momento en que se devuelve el código de acceso
+completo; la persistencia guarda su hash y una vista parcial.
+
+El simulador no recibe ni almacena números de tarjeta, fechas de caducidad ni
+códigos de seguridad. Cada intento conserva su referencia, resultado, importe,
+moneda y fecha de procesamiento.
+
+Errores relevantes: `4001` reserva no encontrada; `6001` reserva no pendiente
+de pago; `6002` ventana de pago expirada.
+
 ## Tickets
 
 Base path: `/api/tickets`
 
-- `GET /api/tickets/{id}` — consulta un ticket por identificador interno.
-- `GET /api/tickets/code/{ticketCode}` — consulta un ticket por código público.
+- `GET /api/tickets/{id}` — consulta un ticket por identificador interno (no
+  expuesta en los perfiles desplegados).
+- `GET /api/tickets/code/{ticketCode}` — consulta un ticket por código público
+  (no expuesta en los perfiles desplegados).
 
 DTO: `TicketResponse`.
 
