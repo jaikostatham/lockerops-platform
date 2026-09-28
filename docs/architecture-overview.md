@@ -57,8 +57,10 @@ convierten entre modelos de dominio y DTOs.
 Las entidades JPA están en `domain/model`, los repositorios Spring Data en
 `infrastructure/persistence/repository` y los estados de dominio se persisten
 como nombres de enum. Las relaciones declaradas entre entidades usan carga
-perezosa. PostgreSQL es la base de datos de ejecución y Flyway gestiona las
-migraciones versionadas; Hibernate valida el esquema existente.
+perezosa. PostgreSQL es la base de datos de ejecución. Las migraciones SQL
+versionadas viven en `src/main/resources/db/migration` y se aplican de forma
+explícita con la tarea Gradle `flywayMigrate`; la API no las ejecuta al
+arrancar. Hibernate valida el esquema existente y no lo modifica.
 
 ## Flujos de negocio
 
