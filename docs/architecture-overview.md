@@ -9,6 +9,7 @@ funcionalidad.
 - `station`: estaciones de lockers.
 - `compartment`: compartimentos y su relación con las estaciones.
 - `reservation`: creación, consulta, cancelación y expiración de reservas.
+- `payment`: registro y procesamiento de intentos de pago simulados.
 - `ticket`: emisión y consulta de tickets, emisión y validación de códigos de
   acceso.
 - `shared.exception`: formato y tratamiento común de errores.
@@ -57,8 +58,10 @@ convierten entre modelos de dominio y DTOs.
 Las entidades JPA están en `domain/model`, los repositorios Spring Data en
 `infrastructure/persistence/repository` y los estados de dominio se persisten
 como nombres de enum. Las relaciones declaradas entre entidades usan carga
-perezosa. PostgreSQL es la base de datos de ejecución y Flyway gestiona las
-migraciones versionadas; Hibernate valida el esquema existente.
+perezosa. PostgreSQL es la base de datos de ejecución. Las migraciones SQL
+versionadas viven en `src/main/resources/db/migration` y se aplican de forma
+explícita con la tarea Gradle `flywayMigrate`; la API no las ejecuta al
+arrancar. Hibernate valida el esquema existente y no lo modifica.
 
 ## Flujos de negocio
 
@@ -66,24 +69,41 @@ migraciones versionadas; Hibernate valida el esquema existente.
 
 1. Se comprueba que el compartimento existe y está disponible.
 2. Se comprueba que no haya una reserva activa para ese compartimento.
-3. La reserva se crea en estado `CONFIRMED` y el compartimento pasa a
+3. El servidor calcula el precio según el tamaño y la duración solicitada.
+4. La reserva se crea en estado `PENDING_PAYMENT` y el compartimento pasa a
    `RESERVED`.
-4. Se emite un ticket y un código de acceso.
-5. La respuesta incluye los datos de la reserva, el ticket y el código emitido.
+5. La respuesta incluye el importe, la moneda y el límite para completar el
+   pago.
+
+### Simular un pago
+
+1. Se bloquea la reserva durante la operación y se comprueba que siga pendiente
+   y dentro de su ventana de pago.
+2. Cada intento aprobado o rechazado queda registrado con una referencia única.
+3. Un rechazo mantiene la reserva pendiente para permitir otro intento.
+4. Una aprobación confirma la reserva, inicia su duración efectiva y emite el
+   ticket y el código de acceso.
+5. Una reserva pendiente que agota su ventana de pago expira y libera el
+   compartimento.
 
 ### Cancelar una reserva
 
-1. Se localiza la reserva y se comprueba que está en estado cancelable.
+1. Se localiza la reserva y se comprueba que esté pendiente de pago o confirmada.
 2. La reserva pasa a `CANCELLED` y el compartimento a `AVAILABLE`.
-3. El ticket asociado se cancela y los códigos activos se revocan.
+3. Si ya existían, el ticket asociado se cancela y los códigos activos se
+   revocan.
 
 ### Expirar una reserva
 
-1. El proceso de expiración localiza reservas `CONFIRMED` cuyo plazo terminó.
+1. El proceso de expiración localiza reservas `PENDING_PAYMENT` cuya ventana de
+   pago terminó y reservas `CONFIRMED` cuyo plazo de uso terminó.
 2. La reserva pasa a `EXPIRED`; el compartimento reservado vuelve a
    `AVAILABLE`.
-3. El ticket y los códigos de acceso asociados pasan a estado expirado.
-4. En los perfiles desplegados, el proceso de expiración está desactivado.
+3. Si la reserva estaba confirmada, el ticket y los códigos de acceso asociados
+   pasan también a estado expirado.
+4. El proceso también se ejecuta en los perfiles desplegados. Por defecto, el
+   planificador revisa las reservas cada 60 segundos; puede haber hasta un
+   intervalo de retraso respecto a la hora límite antes de actualizar el estado.
 
 ### Validar un código de acceso
 

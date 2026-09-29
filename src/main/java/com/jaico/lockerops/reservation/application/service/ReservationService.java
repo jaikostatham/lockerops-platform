@@ -11,7 +11,6 @@ import com.jaico.lockerops.reservation.domain.model.Reservation;
 import com.jaico.lockerops.reservation.domain.enums.ReservationStatus;
 import com.jaico.lockerops.compartment.infrastructure.persistence.repository.LockerCompartmentRepository;
 import com.jaico.lockerops.reservation.infrastructure.persistence.repository.ReservationRepository;
-import com.jaico.lockerops.ticket.api.dto.response.ReservationTicketResponse;
 import com.jaico.lockerops.ticket.application.service.TicketService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,22 +30,28 @@ public class ReservationService {
     private final ReservationRepository reservationRepository;
     private final LockerCompartmentRepository lockerCompartmentRepository;
     private final ReservationMapper reservationMapper;
+    private final ReservationPricingService reservationPricingService;
+    private final ReservationPaymentProperties reservationPaymentProperties;
     private final TicketService ticketService;
 
     public ReservationService(
             ReservationRepository reservationRepository,
             LockerCompartmentRepository lockerCompartmentRepository,
             ReservationMapper reservationMapper,
+            ReservationPricingService reservationPricingService,
+            ReservationPaymentProperties reservationPaymentProperties,
             TicketService ticketService
     ) {
         this.reservationRepository = reservationRepository;
         this.lockerCompartmentRepository = lockerCompartmentRepository;
         this.reservationMapper = reservationMapper;
+        this.reservationPricingService = reservationPricingService;
+        this.reservationPaymentProperties = reservationPaymentProperties;
         this.ticketService = ticketService;
     }
 
     @Transactional
-    public ReservationTicketResponse createReservation(CreateReservationRequest request) {
+    public ReservationResponse createReservation(CreateReservationRequest request) {
         LockerCompartment lockerCompartment = findLockerCompartmentOrThrow(
                 request.getLockerCompartmentId()
         );
@@ -62,19 +67,30 @@ public class ReservationService {
                 request.getDurationMinutes(),
                 ChronoUnit.MINUTES
         );
+        Instant paymentExpiresAt = reservedFrom.plus(
+                reservationPaymentProperties.getTimeoutMinutes(),
+                ChronoUnit.MINUTES
+        );
+        long amountMinor = reservationPricingService.calculateAmountMinor(
+                lockerCompartment.getSize(),
+                request.getDurationMinutes()
+        );
 
         Reservation reservation = reservationMapper.toEntity(
                 lockerCompartment,
                 reservedFrom,
                 reservedUntil,
-                request.getCustomerReference()
+                request.getCustomerReference(),
+                amountMinor,
+                ReservationPricingService.CURRENCY,
+                paymentExpiresAt
         );
 
         lockerCompartment.setStatus(LockerCompartmentStatus.RESERVED);
 
         Reservation savedReservation = reservationRepository.save(reservation);
 
-        return ticketService.issueTicketForReservation(savedReservation);
+        return reservationMapper.toResponse(savedReservation);
     }
 
     @Transactional(readOnly = true)
@@ -93,7 +109,7 @@ public class ReservationService {
 
     @Transactional
     public ReservationResponse cancelReservation(Long id) {
-        Reservation reservation = findReservationOrThrow(id);
+        Reservation reservation = findReservationForUpdateOrThrow(id);
 
         validateReservationCanBeCancelled(reservation);
 
@@ -112,7 +128,7 @@ public class ReservationService {
     }
 
     private LockerCompartment findLockerCompartmentOrThrow(Long id) {
-        return lockerCompartmentRepository.findById(id)
+        return lockerCompartmentRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new ApiException(
                         ApiErrorCode.LOCKER_COMPARTMENT_NOT_FOUND,
                         id
@@ -121,6 +137,14 @@ public class ReservationService {
 
     private Reservation findReservationOrThrow(Long id) {
         return reservationRepository.findById(id)
+                .orElseThrow(() -> new ApiException(
+                        ApiErrorCode.RESERVATION_NOT_FOUND,
+                        id
+                ));
+    }
+
+    private Reservation findReservationForUpdateOrThrow(Long id) {
+        return reservationRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new ApiException(
                         ApiErrorCode.RESERVATION_NOT_FOUND,
                         id
@@ -150,7 +174,7 @@ public class ReservationService {
     }
 
     private void validateReservationCanBeCancelled(Reservation reservation) {
-        if (reservation.getStatus() != ReservationStatus.CONFIRMED) {
+        if (!ACTIVE_RESERVATION_STATUSES.contains(reservation.getStatus())) {
             throw new ApiException(
                     ApiErrorCode.RESERVATION_CANNOT_BE_CANCELLED
             );

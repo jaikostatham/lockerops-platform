@@ -16,6 +16,9 @@ public class ReservationResponse {
     private Instant reservedFrom;
     private Instant reservedUntil;
     private String customerReference;
+    private Long amountMinor;
+    private String currency;
+    private Instant paymentExpiresAt;
     private Instant createdAt;
     private Instant updatedAt;
     private Instant cancelledAt;
@@ -32,6 +35,9 @@ public class ReservationResponse {
             Instant reservedFrom,
             Instant reservedUntil,
             String customerReference,
+            Long amountMinor,
+            String currency,
+            Instant paymentExpiresAt,
             Instant createdAt,
             Instant updatedAt,
             Instant cancelledAt,
@@ -47,6 +53,9 @@ public class ReservationResponse {
         this.reservedFrom = reservedFrom;
         this.reservedUntil = reservedUntil;
         this.customerReference = customerReference;
+        this.amountMinor = amountMinor;
+        this.currency = currency;
+        this.paymentExpiresAt = paymentExpiresAt;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
         this.cancelledAt = cancelledAt;
@@ -88,6 +97,18 @@ public class ReservationResponse {
 
     public String getCustomerReference() {
         return customerReference;
+    }
+
+    public Long getAmountMinor() {
+        return amountMinor;
+    }
+
+    public String getCurrency() {
+        return currency;
+    }
+
+    public Instant getPaymentExpiresAt() {
+        return paymentExpiresAt;
     }
 
     public Instant getCreatedAt() {

@@ -3,6 +3,7 @@ package com.jaico.lockerops.reservation.api.dto.request;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.Max;
 
 public class CreateReservationRequest {
 
@@ -12,6 +13,7 @@ public class CreateReservationRequest {
 
     @NotNull(message = "La duración de la reserva es obligatoria")
     @Positive(message = "La duración de la reserva debe ser mayor que cero")
+    @Max(value = 1440, message = "La duración de la reserva no puede superar los 1440 minutos")
     private Integer durationMinutes;
 
     @Size(max = 100, message = "La referencia del cliente no puede superar los 100 caracteres")

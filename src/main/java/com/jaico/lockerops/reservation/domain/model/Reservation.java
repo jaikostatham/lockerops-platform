@@ -47,6 +47,15 @@ public class Reservation {
     @Column(name = "customer_reference", length = 100)
     private String customerReference;
 
+    @Column(name = "amount_minor", nullable = false)
+    private Long amountMinor;
+
+    @Column(nullable = false, length = 3)
+    private String currency;
+
+    @Column(name = "payment_expires_at")
+    private Instant paymentExpiresAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -72,11 +81,36 @@ public class Reservation {
             Instant reservedUntil,
             String customerReference
     ) {
+        this(
+                lockerCompartment,
+                status,
+                reservedFrom,
+                reservedUntil,
+                customerReference,
+                0L,
+                "EUR",
+                null
+        );
+    }
+
+    public Reservation(
+            LockerCompartment lockerCompartment,
+            ReservationStatus status,
+            Instant reservedFrom,
+            Instant reservedUntil,
+            String customerReference,
+            Long amountMinor,
+            String currency,
+            Instant paymentExpiresAt
+    ) {
         this.lockerCompartment = lockerCompartment;
         this.status = status;
         this.reservedFrom = reservedFrom;
         this.reservedUntil = reservedUntil;
         this.customerReference = customerReference;
+        this.amountMinor = amountMinor;
+        this.currency = currency;
+        this.paymentExpiresAt = paymentExpiresAt;
     }
 
     @PrePersist
@@ -146,6 +180,18 @@ public class Reservation {
 
     public void setCustomerReference(String customerReference) {
         this.customerReference = customerReference;
+    }
+
+    public Long getAmountMinor() {
+        return amountMinor;
+    }
+
+    public String getCurrency() {
+        return currency;
+    }
+
+    public Instant getPaymentExpiresAt() {
+        return paymentExpiresAt;
     }
 
     public Instant getCreatedAt() {
